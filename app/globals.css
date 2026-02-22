@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 2 2% 4%;
+    --foreground: 0 0% 95%;
+    --primary: 0 0% 7%;
+    --primary-foreground: 45 93% 51%;
+    --secondary: 186 100% 46%;
+    --secondary-foreground: 0 0% 7%;
+    --accent: 45 93% 51%;
+    --accent-foreground: 0 0% 7%;
+    --muted: 0 0% 35%;
+    --muted-foreground: 0 0% 65%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 15%;
+    --input: 0 0% 12%;
+    --ring: 45 93% 51%;
+    --radius: 0.5rem;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  .sidebar-nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-md transition-colors hover:bg-muted cursor-pointer;
+  }
+
+  .sidebar-nav-item.active {
+    @apply bg-accent text-accent-foreground;
+  }
+}
+
+* {
+  @apply border-border;
+}
