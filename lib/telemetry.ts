@@ -17,7 +17,7 @@ import {
  * e.g., "2m 34s", "5h 12m", "342ms"
  */
 export function formatDuration(ms: number): string {
-  if (ms < 1000) {
+  if (ms < 1000 && ms > 0) {
     return `${Math.round(ms)}ms`;
   }
 
@@ -245,13 +245,19 @@ export function buildRunViewModel(run: Run): RunViewModel {
       ? completedStepDurations.reduce((a, b) => a + b, 0) / completedStepDurations.length
       : 0;
 
-  const slowestStep = stepViewModels.reduce((prev, current) =>
-    (current.duration.ms || 0) > (prev.duration.ms || 0) ? current : prev,
-  );
+  const slowestStep =
+    stepViewModels.length > 0
+      ? stepViewModels.reduce((prev, current) =>
+          (current.duration.ms || 0) > (prev.duration.ms || 0) ? current : prev,
+        )
+      : undefined;
 
-  const fastestStep = stepViewModels.reduce((prev, current) =>
-    (current.duration.ms || 0) < (prev.duration.ms || 0) ? current : prev,
-  );
+  const fastestStep =
+    stepViewModels.length > 0
+      ? stepViewModels.reduce((prev, current) =>
+          (current.duration.ms || 0) < (prev.duration.ms || 0) ? current : prev,
+        )
+      : undefined;
 
   // Extract error if run failed
   const error = run.error
@@ -311,8 +317,8 @@ export function buildRunViewModel(run: Run): RunViewModel {
 
     performance: {
       averageStepDurationMs,
-      slowestStep: slowestStep.duration.ms > 0 ? slowestStep : undefined,
-      fastestStep: fastestStep.duration.ms > 0 ? fastestStep : undefined,
+      slowestStep: slowestStep && slowestStep.duration.ms > 0 ? slowestStep : undefined,
+      fastestStep: fastestStep && fastestStep.duration.ms > 0 ? fastestStep : undefined,
     },
 
     error,
@@ -383,7 +389,7 @@ export function estimateRunCompletion(run: Run): number | null {
   const avgDuration =
     completedSteps.reduce((sum, s) => sum + (s.durationMs || 0), 0) / completedSteps.length;
   const remainingSteps = run.steps.length - completedSteps.length;
-  const estimatedMs = avgDuration * remainingSteps;
+  const estimatedMs = Math.max(avgDuration * remainingSteps, 1); // Ensure at least 1ms in future
 
   return Date.now() + estimatedMs;
 }
