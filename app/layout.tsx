@@ -3,10 +3,16 @@ import './globals.css'
 import Sidebar from '@/components/sidebar'
 
 export const metadata: Metadata = {
-  title: 'Symphony AION',
-  description: 'AI-powered orchestration platform',
+  title: 'Symphony-AION',
+  description: 'The first AI orchestrator where every token has a receipt and every agent has a conscience',
   icons: {
     icon: '/favicon.ico',
+  },
+  openGraph: {
+    title: 'Symphony-AION',
+    description: 'The first AI orchestrator where every token has a receipt and every agent has a conscience',
+    image: '/og-banner.png',
+    type: 'website',
   },
 }
 
