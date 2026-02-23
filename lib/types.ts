@@ -5,22 +5,43 @@
 
 /**
  * Event kinds supported by Symphony AION
- * These represent the 13 different event types that can occur during workflow execution
+ * Maps to telemetry events from the Python runtime
  */
 export enum EventKind {
-  RUN_STARTED = 'RUN_STARTED',
-  RUN_COMPLETED = 'RUN_COMPLETED',
-  RUN_FAILED = 'RUN_FAILED',
-  STEP_STARTED = 'STEP_STARTED',
-  STEP_COMPLETED = 'STEP_COMPLETED',
-  STEP_FAILED = 'STEP_FAILED',
-  MODEL_INVOKED = 'MODEL_INVOKED',
-  MODEL_RESPONSE = 'MODEL_RESPONSE',
-  TOOL_CALLED = 'TOOL_CALLED',
-  TOOL_RESULT = 'TOOL_RESULT',
-  COST_RECORDED = 'COST_RECORDED',
-  VALIDATION_PASSED = 'VALIDATION_PASSED',
-  VALIDATION_FAILED = 'VALIDATION_FAILED',
+  // Lifecycle events
+  RUN_STARTED = 'run_start',
+  RUN_COMPLETED = 'run_end',
+  RUN_FAILED = 'run_end', // Terminal event
+
+  // Phase events
+  PHASE_ENTER = 'phase_enter',
+  PHASE_EXIT = 'phase_exit',
+
+  // Context and data events
+  CONTEXT_LOAD = 'context_load',
+  TOKEN_COUNT = 'token_count',
+
+  // Governance and control
+  GOVERNANCE = 'governance',
+  RETRY = 'retry',
+
+  // Analysis events
+  LOSS_CLASSIFY = 'loss_classify',
+  COMPARE_BASE = 'compare_base',
+  COMPARE_OPT = 'compare_opt',
+  LATENCY = 'latency',
+
+  // Legacy aliases for compatibility
+  STEP_STARTED = 'phase_enter',
+  STEP_COMPLETED = 'phase_exit',
+  STEP_FAILED = 'phase_exit',
+  MODEL_INVOKED = 'token_count',
+  MODEL_RESPONSE = 'token_count',
+  TOOL_CALLED = 'context_load',
+  TOOL_RESULT = 'context_load',
+  COST_RECORDED = 'token_count',
+  VALIDATION_PASSED = 'governance',
+  VALIDATION_FAILED = 'governance',
 }
 
 /**
