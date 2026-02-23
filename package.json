@@ -15,7 +15,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "next": "^14.2.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "lucide-react": "^0.376.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
