@@ -19,10 +19,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const API_URL      = import.meta.env.VITE_API_URL      || "http://localhost:8000";
-const FOUNDER_KEY  = import.meta.env.VITE_FOUNDER_KEY  || "AION2024";
-const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || "aion_admin";
-const CALENDLY_URL = import.meta.env.VITE_CALENDLY_URL || "https://calendly.com";
+const API_URL      = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL)  || "http://localhost:8000";
+const FOUNDER_KEY  = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_FOUNDER_KEY) || "AION2024";
+const ADMIN_SECRET = (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_ADMIN_SECRET) || "aion_admin";
 
 function isFounderMode() {
   if (typeof window === "undefined") return false;
