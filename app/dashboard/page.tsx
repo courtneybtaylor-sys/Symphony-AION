@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, Suspense, lazy } from 'react'
-import { useRunData } from '@/lib/useRunData'
+import { useRunData } from '@/hooks/useRunData'
 import { PulseTab } from '@/components/dashboard/PulseTab'
 
 // Lazy load other tabs for performance
