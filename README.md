@@ -1,8 +1,10 @@
-# Symphony AION
+# Symphony AION v0.1.0
 
 > Symphony-IR runs AI workflows deterministically. Symphony-AION makes those workflows auditable, measurable, and financially defensible.
 
 A Next.js 14 platform for orchestrating, monitoring, and billing AI workflows with full transparency and control.
+
+**Status**: DEMO MODE · GROQ CONNECTED · Ready for Production Integration
 
 ## Features
 
