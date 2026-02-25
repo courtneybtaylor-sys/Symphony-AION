@@ -1,53 +1,249 @@
-# Symphony AION v0.1.0
+# Symphony-AION · Forensic Token Intelligence
 
-> Symphony-IR runs AI workflows deterministically. Symphony-AION makes those workflows auditable, measurable, and financially defensible.
+Upload AI workflow telemetry from any framework. Receive a forensic cost and performance audit with **AION Efficiency Index** score and **dollar-quantified recommendations**.
 
-A Next.js 14 platform for orchestrating, monitoring, and billing AI workflows with full transparency and control.
+**$750 per report** · **$1,500/month Enterprise** · **First audit complimentary**
 
-**Status**: DEMO MODE · GROQ CONNECTED · Ready for Production Integration
+---
 
-## Features
+## What It Is
 
-- 🔍 **Complete Observability** - Track every step, model invocation, and tool execution
-- 💰 **Financial Accountability** - Precise cost tracking per model, per step, per run
-- 📊 **Rich Dashboards** - Real-time monitoring with detailed telemetry and metrics
-- ⚡ **High Performance** - Optimized for real-time data processing and streaming
-- 🔧 **Extensible** - Plug in custom models, tools, and validation logic
-- 🧪 **Fully Tested** - Comprehensive test suite with Jest covering all event types
+Symphony-AION ingests instrumentation records (JSON telemetry) from any AI workflow framework—Claude Code, LangChain, Anthropic SDK, custom orchestration systems—and produces a forensic audit report in **15 seconds**.
+
+The audit includes:
+- **AION Efficiency Index (AEI)**: Composite 0–100 score with 5-component breakdown
+- **Cost Forensics**: Per-model, per-step, and avoidable cost analysis
+- **Risk Flags**: Validation loops, hallucinations, retry escalations, premium model overuse
+- **Optimization Recommendations**: 8 opinionated rules, all with ROI and dollar savings quantified
+- **PDF Report**: Executive summary, full forensics, implementation roadmap
+
+---
+
+## AION Efficiency Index (AEI)
+
+The AEI is a forensic efficiency score (0–100) that reflects the cost-per-token performance of your workflow.
+
+| Component | Weight | Scale | Notes |
+|-----------|--------|-------|-------|
+| **Cost Efficiency** | 25% | 0–100 | Inverse of cost per 1k tokens vs. $0.002 benchmark |
+| **Token Efficiency** | 25% | 0–100 | Output token ratio and prompt caching potential |
+| **Latency Score** | 20% | 0–100 | Total duration vs. optimal parallelization |
+| **Reliability Score** | 20% | 0–100 | Inverse of retry rate and validation failures |
+| **Retry Penalty** | 10% | 0–100 | Retroactive penalty for escalations and loops |
+
+**Grades:**
+- **A (85+)**: Highly optimized
+- **B (70–84)**: Good, room for improvement
+- **C (55–69)**: Moderate inefficiency, clear optimization path
+- **D (40–54)**: Significant waste, urgent recommendations
+- **F (<40)**: Critical issues, escalate to framework team
+
+---
+
+## Supported Frameworks
+
+Symphony-AION auto-detects framework from IR signal and overhead ratio:
+
+| Framework | Detection Signal | Overhead Ratio | Supports |
+|-----------|------------------|-----------------|----------|
+| **Claude Code / Anthropic SDK** | `request.model`, `usage` fields | 0.08–0.12 | Direct API calls |
+| **LangChain** | `LLMResult`, callbacks | 0.25–0.40 | Chain orchestration |
+| **LlamaIndex** | `QueryEngine`, `Response` | 0.15–0.30 | Index retrieval |
+| **Vellum** | `VellumPrompt`, `VellumCompletion` | 0.10–0.20 | Prompt pipeline |
+| **Custom REST** | Any JSON with `model`, `tokens`, `duration` | 0.05–0.50 | User-defined |
+| **Generic** | Fallback detection | 0.20 | Standard fields |
+
+---
+
+## Supported Models
+
+Symphony-AION pricing and audits cover **19 LLMs across 6 providers**:
+
+| Provider | Models (Count) | Pricing |
+|----------|----------------|---------|
+| **Anthropic** | Claude 3 Haiku, Sonnet, Opus, 3.5-Haiku, 3.5-Sonnet (5) | Per-token standard |
+| **OpenAI** | GPT-4 Turbo, GPT-4o, GPT-4o-mini, o1-preview, o1-mini (5) | Per-token standard |
+| **Google** | Gemini 1.5 Pro, Flash, 2.0-Flash (3) | Per-token standard |
+| **Meta** | Llama 3.1 (70B, 8B), Llama Guard 3 (3) | Open-source pricing |
+| **Mistral** | Mistral Large, Medium (2) | Per-token standard |
+| **xAI** | Grok-1, Grok-1-Vision (2) | Per-token standard |
+
+Audit will ingest any `model` string; if not in pricing map, defaults to $0.005 per 1k tokens.
+
+---
+
+## Audit Report Sections
+
+The PDF report (typically 30–50 pages) contains:
+
+1. **Executive Summary**
+   - AEI score, grade, label (e.g., "Efficient", "Moderate Waste")
+   - Top 3 findings with dollar impact
+   - Risk flags: `VALIDATION_LOOP`, `HALLUCINATION_DETECTED`, `PREMIUM_MODEL_OVERUSE`, etc.
+   - 1-page visual dashboard
+
+2. **Cost Forensics**
+   - Breakdown by model (pie chart)
+   - Breakdown by step (bar chart)
+   - Avoidable costs: retries, escalations, framework overhead
+   - Cost per 1k tokens vs. benchmark
+
+3. **Performance Diagnostics**
+   - Latency by step (waterfall)
+   - Model call histogram (distribution)
+   - Framework overhead timeline
+   - Parallelization potential
+
+4. **Failure & Risk Analysis**
+   - Validation log: all failures with deviation details
+   - Retry log: escalations, reasons, costs
+   - Risk flag breakdown with context
+   - Hallucination examples (if detected)
+
+5. **Optimization Recommendations**
+   - 8 rules, sorted by priority (critical → high → medium → low)
+   - Each: title, finding (specific), action (code example), ROI, effort, affected steps
+   - Rules: MODEL_SUBSTITUTION, PROMPT_CACHING, RETRY_ELIMINATION, ROUTING_FIX, HALLUCINATION_PREVENTION, TOKEN_OPTIMIZATION, PARALLEL_EXECUTION, FRAMEWORK_OVERHEAD_REDUCTION
+
+6. **Financial Exposure**
+   - Projected monthly savings (at 100 runs/month)
+   - Break-even analysis for each recommendation
+   - 12-month cost projection (current vs. post-optimization)
+   - Risk concentration (% of cost from single model, single step)
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+ | Python 3.9+
+- npm or yarn | pip
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/anthropics/Symphony-AION.git
+cd Symphony-AION
+
+# Install dependencies
+npm install && pip install -r backend/requirements.txt
+
+# Start backend (FastAPI)
+cd backend
+uvicorn main:app --reload
+
+# In another terminal, start frontend (Next.js)
+npm run dev
+
+# Run tests
+npm test
+python backend/test_harness.py --runs 5
+```
+
+### Upload Your First Workflow
+
+1. **Export telemetry** from your framework as JSON (IR format):
+   ```json
+   {
+     "id": "run-001",
+     "started_at": "2025-02-25T12:00:00Z",
+     "status": "COMPLETED",
+     "framework": "generic",
+     "steps": [
+       {
+         "id": "step-01",
+         "name": "Classify Intent",
+         "model": "gpt-4o-mini",
+         "input_tokens": 200,
+         "output_tokens": 50,
+         "latency_ms": 1200,
+         "status": "COMPLETED"
+       }
+     ]
+   }
+   ```
+
+2. **Upload via UI** or API:
+   ```bash
+   curl -X POST http://localhost:8000/api/audit \
+     -F "file=@telemetry.json"
+   ```
+
+3. **Download PDF report** with AEI score and recommendations
+
+---
 
 ## Architecture
 
-### System Overview
-
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Next.js 14 App Router                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────────┐        ┌──────────────────────┐       │
-│  │   Pages/Routes   │        │    API Routes        │       │
-│  ├──────────────────┤        ├──────────────────────┤       │
-│  │ /dashboard       │        │ /api/runs/[id]       │       │
-│  │ /models          │        │ /api/runs            │       │
-│  │ /billing         │        │ /api/events          │       │
-│  └──────────────────┘        └──────────────────────┘       │
-│                                       ▲                       │
-├───────────────────────────────────────┼───────────────────────┤
-│                                       │                       │
-│  ┌────────────────────────────────────┴───────────────────┐  │
-│  │              Data & Transformation Layer               │  │
-│  ├──────────────────────────────────────────────────────┤  │
-│  │                                                        │  │
-│  │  Hooks (lib/hooks/*)          Types (lib/types.ts)   │  │
-│  │  ├─ useRunData                ├─ Run                 │  │
-│  │  └─ useRunDataBatch           ├─ Event               │  │
-│  │                                ├─ RunViewModel        │  │
-│  │  Telemetry (lib/telemetry.ts) └─ ... (23 types)      │  │
-│  │  ├─ buildRunViewModel()                              │  │
-│  │  ├─ formatDuration()                                 │  │
-│  │  └─ formatRelativeTime()                             │  │
-│  │                                                        │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                    Frontend (Next.js)                       │
+│  Dashboard: Pulse Tab (AEI card) | Compare Tab (Recs)      │
+│  PDF Download | Real-time metrics                           │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    API Layer (FastAPI)                      │
+│  POST /api/audit (IR upload)                               │
+│  GET /api/report/:id (PDF download)                        │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                 Audit Engine (Node.js + Python)            │
+│  ┌──────────────┬──────────────┬──────────────┐            │
+│  │ IR Parser    │ AEI Scorer   │ Recommender  │            │
+│  └──────────────┴──────────────┴──────────────┘            │
+│  ┌──────────────┬──────────────┐                           │
+│  │ PDF Reporter │ Telemetry DB │                           │
+│  └──────────────┴──────────────┘                           │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                 Storage Layer (SQLite)                      │
+│  Runs | Steps | Events | Reports | Risk Flags              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Libraries:**
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: FastAPI, SQLAlchemy, jsPDF
+- **Scoring**: TypeScript (costefficiency, tokenefficiency, latencyScore, reliabilityScore)
+- **PDF**: jsPDF + embedded charts
+
+See `PROJECT_STATUS_VERIFIED.md` for full audit trail and design docs.
+
+---
+
+## Pricing
+
+- **Per-Audit**: $750 (includes one full forensic report + recommendations)
+- **Monthly Subscription**: $1,500/month (100 audits/month, API access, API priority)
+- **Enterprise**: Contact sales@symphony-aion.com (dedicated infrastructure, SLA, custom rules)
+- **First Audit**: Complimentary for qualified teams
+
+Contact: **hello@symphony-aion.com**
+
+---
+
+## License
+
+Proprietary — All rights reserved.
+
+Symphony-AION is closed-source and proprietary software. Unauthorized copying, modification, or distribution is prohibited.
+
+---
+
+## Support
+
+- **Documentation**: [docs.symphony-aion.com](https://docs.symphony-aion.com)
+- **Status Page**: [status.symphony-aion.com](https://status.symphony-aion.com)
+- **Email**: hello@symphony-aion.com
+- **GitHub Issues**: [symphony-aion/issues](https://github.com/anthropics/symphony-aion/issues)
+
+---
+
+**Last Updated**: February 25, 2025 | **Version**: 2.0.0 (Phase 2 Complete)
 │                                       ▲                       │
 ├───────────────────────────────────────┼───────────────────────┤
 │                                       │                       │
