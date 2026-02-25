@@ -978,6 +978,7 @@ export async function generateAuditReport(
     companyName?: string;
     reportDate?: string;
     reportId?: string;
+    customerEmail?: string;
   } = {}
 ): Promise<Blob> {
   const doc = new jsPDF({
