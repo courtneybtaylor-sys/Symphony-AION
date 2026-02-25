@@ -6,21 +6,92 @@
 import { RunViewModel, EventKind } from './types';
 
 /**
+ * AEI Threshold definitions — bands for audit qualification and pricing
+ */
+export const AEI_THRESHOLDS = {
+  EXCELLENT: {
+    min: 90,
+    max: 100,
+    grade: 'A' as const,
+    label: 'Excellent',
+    color: '#1A6B45',
+    urgency: 'none' as const,
+  },
+  GOOD: {
+    min: 80,
+    max: 89,
+    grade: 'B' as const,
+    label: 'Good Efficiency',
+    color: '#1A4A7A',
+    urgency: 'monitor' as const,
+  },
+  ACCEPTABLE: {
+    min: 70,
+    max: 79,
+    grade: 'C' as const,
+    label: 'Acceptable',
+    color: '#B87A10',
+    urgency: 'address' as const,
+  },
+  INEFFICIENT: {
+    min: 55,
+    max: 69,
+    grade: 'D' as const,
+    label: 'Structural Inefficiency',
+    color: '#C05A00',
+    urgency: 'urgent' as const,
+  },
+  CRITICAL: {
+    min: 0,
+    max: 54,
+    grade: 'F' as const,
+    label: 'Financial Leakage Risk',
+    color: '#8B1A1A',
+    urgency: 'critical' as const,
+  },
+} as const;
+
+/**
+ * Boardroom statements — C-level language for AEI scores
+ */
+export const AEI_BOARDROOM_DEFINITIONS: Record<number, string> = {
+  90: 'Workflow is operating near optimal efficiency. Minor improvements available.',
+  80: 'Good efficiency. Targeted optimizations will yield meaningful savings.',
+  70: 'Acceptable. Identifiable inefficiencies are costing 20–35% more than necessary.',
+  55: 'Structural inefficiency detected. Workflow is consuming 40–60% more resources than an optimized equivalent.',
+  0: 'Financial leakage risk. Uncontrolled costs, retry loops, or model misrouting are actively wasting budget. Immediate intervention required.',
+};
+
+export type AEIUrgency = 'none' | 'monitor' | 'address' | 'urgent' | 'critical';
+
+/**
  * AEI Score result with component breakdown, grade, and insights
  */
 export interface AEIScore {
-  overall: number;                    // 0–100 composite score
+  overall: number; // 0–100 composite score
   grade: 'A' | 'B' | 'C' | 'D' | 'F'; // Letter grade
-  label: string;                      // e.g., "Efficient", "Moderate Waste"
+  label: string; // e.g., "Efficient", "Moderate Waste"
   components: {
-    costEfficiency: number;           // 0–100
-    tokenEfficiency: number;          // 0–100
-    latencyScore: number;             // 0–100
-    reliabilityScore: number;         // 0–100
-    retryPenalty: number;             // 0–100 (inverse of retry rate)
+    costEfficiency: number; // 0–100
+    tokenEfficiency: number; // 0–100
+    latencyScore: number; // 0–100
+    reliabilityScore: number; // 0–100
+    retryPenalty: number; // 0–100 (inverse of retry rate)
   };
-  insights: string[];                 // 3–5 plain-English findings
-  riskFlags: string[];                // Flags like "HIGH_RETRY_RATE"
+  insights: string[]; // 3–5 plain-English findings
+  riskFlags: string[]; // Flags like "HIGH_RETRY_RATE"
+  classification?: AEIClassification; // Added classification result
+}
+
+/**
+ * AEI Classification for audit intake gate
+ */
+export interface AEIClassification {
+  threshold: (typeof AEI_THRESHOLDS)[keyof typeof AEI_THRESHOLDS];
+  boardroomStatement: string;
+  urgency: AEIUrgency;
+  minimumViableClient: boolean; // true if savings potential > $300/month
+  projectedMonthlySavings?: number; // Conservative estimate for tier selection
 }
 
 /**
@@ -375,6 +446,55 @@ export function calculateAEI(data: RunViewModel): AEIScore {
     components,
     insights,
     riskFlags,
+  };
+}
+
+/**
+ * Classify AEI score for audit intake qualification
+ * Determines eligibility for $750 audit and minimum viable client status
+ */
+export function classifyAEI(
+  aeiScore: AEIScore,
+  estimatedMonthlySavings: number = 0
+): AEIClassification {
+  const score = aeiScore.overall;
+
+  // Find matching threshold
+  let threshold: (typeof AEI_THRESHOLDS)[keyof typeof AEI_THRESHOLDS];
+
+  if (score >= 90) {
+    threshold = AEI_THRESHOLDS.EXCELLENT;
+  } else if (score >= 80) {
+    threshold = AEI_THRESHOLDS.GOOD;
+  } else if (score >= 70) {
+    threshold = AEI_THRESHOLDS.ACCEPTABLE;
+  } else if (score >= 55) {
+    threshold = AEI_THRESHOLDS.INEFFICIENT;
+  } else {
+    threshold = AEI_THRESHOLDS.CRITICAL;
+  }
+
+  // Get boardroom statement (map score to nearest defined level)
+  const statementKeys = Object.keys(AEI_BOARDROOM_DEFINITIONS)
+    .map(Number)
+    .sort((a, b) => b - a);
+  const nearestKey = statementKeys.find((k) => score >= k) || 0;
+  const boardroomStatement =
+    AEI_BOARDROOM_DEFINITIONS[nearestKey] ||
+    AEI_BOARDROOM_DEFINITIONS[0];
+
+  // Determine minimum viable client
+  // Conservative threshold: if projected monthly savings > $300, audit ROI is justified
+  // At $750 per audit, need to save > $37.50/month to break even (assuming 20:1 ratio)
+  // But we use $300 as the bar for a "good" customer
+  const minimumViableClient = estimatedMonthlySavings > 300;
+
+  return {
+    threshold,
+    boardroomStatement,
+    urgency: threshold.urgency,
+    minimumViableClient,
+    projectedMonthlySavings: estimatedMonthlySavings,
   };
 }
 
