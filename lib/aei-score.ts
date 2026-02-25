@@ -292,6 +292,40 @@ export function calculateAEI(data: RunViewModel): AEIScore {
     riskFlags
   );
 
+  // Detect MODEL_ROUTING_FAILURE
+  // Check if any step has multiple model calls due to escalation (more expensive model after cheaper one)
+  if (data.costs.byModel.length >= 2) {
+    const sortedByName = [...data.costs.byModel].sort((a, b) => a.cost - b.cost);
+    const cheapestModel = sortedByName[0];
+    const mostExpensiveModel = sortedByName[sortedByName.length - 1];
+
+    // If we're using both cheap and expensive models, likely a routing escalation happened
+    if (
+      cheapestModel.cost > 0 &&
+      mostExpensiveModel.cost > cheapestModel.cost * 2 &&
+      data.steps.failed > 0
+    ) {
+      if (!riskFlags.includes('MODEL_ROUTING_FAILURE')) {
+        riskFlags.push('MODEL_ROUTING_FAILURE');
+      }
+    }
+  }
+
+  // Detect HALLUCINATION_DETECTED
+  // Check if there are validation failures with high retry rate indicating output quality issues
+  const validationEvents = eventsByKind[EventKind.GOVERNANCE] || 0;
+  const retries = eventsByKind[EventKind.RETRY] || 0;
+
+  if (validationEvents > 0 && retries > 0) {
+    const validationEventRate = validationEvents / totalEvents;
+    // If >=20% of events are validation events with concurrent retries, or multiple validations with retries
+    if (validationEventRate >= 0.2 || (validationEvents >= 2 && retries >= 2)) {
+      if (!riskFlags.includes('HALLUCINATION_DETECTED')) {
+        riskFlags.push('HALLUCINATION_DETECTED');
+      }
+    }
+  }
+
   // Calculate overall score with weights
   const overall = clamp(
     costEfficiency * 0.25 +
