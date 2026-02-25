@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import AuditUploader from '@/components/AuditUploader'
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false)
+  const [showUploader, setShowUploader] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -13,95 +15,76 @@ export default function LandingPage() {
   if (!mounted) return null
 
   return (
-    <div className="w-full h-screen flex flex-col bg-[#070709]" style={{ backgroundColor: '#070709' }}>
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        {/* AION Logo Mark */}
-        <div className="mb-8 relative w-24 h-24 md:w-28 md:h-28">
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 rounded-lg transform rotate-12" />
-          <div className="absolute inset-1 bg-[#070709] rounded-lg flex items-center justify-center">
-            <span className="text-2xl md:text-3xl font-bold bg-gradient-to-br from-cyan-400 to-purple-600 bg-clip-text text-transparent">
-              A
-            </span>
+    <div className="w-full min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Navigation */}
+      <nav className="border-b border-slate-700 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="text-2xl font-bold">Symphony-AION</div>
+          <Link
+            href="/dashboard"
+            className="text-slate-400 hover:text-slate-200 text-sm"
+          >
+            Dashboard
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+        <div className="max-w-4xl mx-auto text-center space-y-8 mb-12">
+          <div>
+            <h1 className="text-5xl md:text-6xl font-bold mb-4">
+              Forensic Audits for AI Workflows
+            </h1>
+            <p className="text-xl text-slate-400">
+              Upload your telemetry. We'll analyze costs, recommend optimizations, and project your ROI.
+            </p>
           </div>
-        </div>
 
-        {/* Wordmark */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-2" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-            Symphony<span className="text-amber-400">·</span>AION
-          </h1>
-        </div>
-
-        {/* Tagline */}
-        <p className="text-center text-base md:text-lg mb-12" style={{ color: '#9898a6' }}>
-          Every token has a receipt. Every agent has a conscience.
-        </p>
-
-        {/* Efficiency Score Ring */}
-        <div className="mb-12 flex flex-col items-center">
-          <div className="relative w-32 h-32 md:w-40 md:h-40">
-            <svg className="w-full h-full" viewBox="0 0 180 180">
-              {/* Background circle */}
-              <circle
-                cx="90"
-                cy="90"
-                r="80"
-                fill="none"
-                stroke="#1a1a1e"
-                strokeWidth="8"
-              />
-              {/* Progress circle */}
-              <circle
-                cx="90"
-                cy="90"
-                r="80"
-                fill="none"
-                stroke="#fbbf24"
-                strokeWidth="8"
-                strokeDasharray={`${(87 / 100) * 502.65} 502.65`}
-                strokeLinecap="round"
-                transform="rotate(-90 90 90)"
-              />
-            </svg>
-            {/* Center text */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl md:text-4xl font-bold text-amber-400">87</span>
-              <span className="text-xs md:text-sm text-gray-400">/100</span>
+          {/* Feature Pills */}
+          <div className="flex flex-col md:flex-row gap-3 justify-center flex-wrap">
+            <div className="px-4 py-2 rounded-full border border-cyan-400/40 text-cyan-300 text-sm font-medium bg-cyan-400/5">
+              ✓ AEI Scoring (0-100)
+            </div>
+            <div className="px-4 py-2 rounded-full border border-blue-400/40 text-blue-300 text-sm font-medium bg-blue-400/5">
+              ✓ 7-Section PDF Report
+            </div>
+            <div className="px-4 py-2 rounded-full border border-green-400/40 text-green-300 text-sm font-medium bg-green-400/5">
+              ✓ Dollar-Quantified Savings
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-4">AION Efficiency Score</p>
         </div>
 
-        {/* Feature Pills */}
-        <div className="flex flex-col md:flex-row gap-4 mb-12 justify-center flex-wrap">
-          <div className="px-4 py-2 rounded-full border border-cyan-400 text-cyan-400 text-sm md:text-base font-medium bg-cyan-400/5">
-            Token Lifecycle Intelligence
+        {/* Uploader or CTA */}
+        {!showUploader ? (
+          <div className="space-y-6 text-center">
+            <button
+              onClick={() => setShowUploader(true)}
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition inline-block"
+            >
+              Start Your Audit
+            </button>
+            <p className="text-slate-400 text-sm">
+              or <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 underline">
+                view sample audit
+              </Link>
+            </p>
           </div>
-          <div className="px-4 py-2 rounded-full border border-purple-400 text-purple-400 text-sm md:text-base font-medium bg-purple-400/5">
-            Constitutional Governance
-          </div>
-          <div className="px-4 py-2 rounded-full border border-amber-400 text-amber-400 text-sm md:text-base font-medium bg-amber-400/5">
-            Multi-Model Routing
-          </div>
-        </div>
-
-        {/* CTA Button */}
-        <Link
-          href="/dashboard"
-          className="px-8 py-3 rounded-lg border-2 border-amber-400 text-amber-400 font-medium hover:bg-amber-400/10 transition-colors flex items-center gap-2"
-        >
-          Open Dashboard
-          <span>→</span>
-        </Link>
+        ) : (
+          <AuditUploader />
+        )}
       </div>
 
-      {/* Bottom Status Bar */}
-      <div
-        className="fixed bottom-0 left-0 right-0 py-3 px-4 text-center text-sm font-mono text-black/80"
-        style={{ backgroundColor: '#fbbf24' }}
-      >
-        SYMPHONY-AION v1.0 · DEMO MODE · GROQ CONNECTED
+      {/* Footer */}
+      <div className="border-t border-slate-700 bg-slate-900/50 py-8">
+        <div className="max-w-6xl mx-auto px-6 text-center text-slate-400 text-sm">
+          <p>
+            Questions? Email{' '}
+            <a href="mailto:hello@symphony-aion.com" className="text-blue-400 hover:text-blue-300">
+              hello@symphony-aion.com
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   )
