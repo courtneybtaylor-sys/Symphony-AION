@@ -1,6 +1,6 @@
 'use client'
 
-import { RunViewModel } from '@/lib/types'
+import { RunViewModel, EventKind } from '@/lib/types'
 import { metricCard } from '@/lib/design-tokens'
 
 interface GovernanceTabProps {
@@ -28,8 +28,8 @@ export function GovernanceTab({ data, loading }: GovernanceTabProps) {
   }
 
   const governanceEvents = data.raw.events.filter((e) => e.kind === 'governance')
-  const validationPassCount = data.events.byKind.VALIDATION_PASSED || 0
-  const validationFailCount = data.events.byKind.VALIDATION_FAILED || 0
+  const validationPassCount = data.events.byKind[EventKind.GOVERNANCE] || 0
+  const validationFailCount = data.events.byKind[EventKind.GOVERNANCE] || 0
   const governanceChecksPassed = validationPassCount
   const governanceChecksFailed = validationFailCount
 
