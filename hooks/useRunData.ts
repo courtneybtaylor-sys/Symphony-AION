@@ -30,7 +30,7 @@ export function useRunData(runId: string, options?: UseRunDataOptions): UseRunDa
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetch = useCallback(async () => {
+  const fetchRunData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,8 +61,8 @@ export function useRunData(runId: string, options?: UseRunDataOptions): UseRunDa
 
   // Initial fetch
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    fetchRunData();
+  }, [fetchRunData]);
 
   // Auto-polling
   useEffect(() => {
@@ -70,15 +70,15 @@ export function useRunData(runId: string, options?: UseRunDataOptions): UseRunDa
       return;
     }
 
-    const interval = setInterval(fetch, options.pollInterval);
+    const interval = setInterval(fetchRunData, options.pollInterval);
     return () => clearInterval(interval);
-  }, [fetch, options?.pollInterval]);
+  }, [fetchRunData, options?.pollInterval]);
 
   return {
     data,
     loading,
     error,
-    refetch: fetch,
+    refetch: fetchRunData,
   };
 }
 
@@ -98,7 +98,7 @@ export function useRunDataBatch(
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Map<string, Error>>(new Map());
 
-  const fetch = useCallback(async () => {
+  const fetchBatchData = useCallback(async () => {
     try {
       setLoading(true);
       setErrors(new Map());
@@ -139,13 +139,13 @@ export function useRunDataBatch(
   }, [runIds, options]);
 
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    fetchBatchData();
+  }, [fetchBatchData]);
 
   return {
     data,
     loading,
     errors,
-    refetch: fetch,
+    refetch: fetchBatchData,
   };
 }

@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { RunViewModel } from '@/lib/types'
-import { metricCard } from '@/lib/design-tokens'
+import { calculateAEI } from '@/lib/aei-score'
+import { generateRecommendations, getTotalProjectedSavings } from '@/lib/recommendations'
 
 interface CompareTabProps {
   data: RunViewModel | null
@@ -9,10 +11,12 @@ interface CompareTabProps {
 }
 
 export function CompareTab({ data, loading }: CompareTabProps) {
+  const [expandedRecId, setExpandedRecId] = useState<string | null>(null)
+
   if (loading) {
     return (
       <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
+        {[...Array(4)].map((_, i) => (
           <div key={i} className="h-32 bg-secondary/10 border border-accent/20 rounded-lg animate-pulse"></div>
         ))}
       </div>
@@ -22,135 +26,277 @@ export function CompareTab({ data, loading }: CompareTabProps) {
   if (!data) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        <p>No comparison data available. Run multiple workflows to compare.</p>
+        <p>Select a run to view recommendations.</p>
       </div>
     )
   }
 
-  // For demo purposes, calculate potential savings
-  const potentialTokenSavings = Math.round(data.tokens.total * 0.15) // 15% potential savings
-  const potentialCostSavings = (data.costs.total * 0.15).toFixed(4)
-  const potentialLatencySavings = Math.round(data.duration.ms * 0.20) // 20% potential latency improvement
+  // Compute recommendations
+  const aeiScore = calculateAEI(data)
+  const recommendations = generateRecommendations(data, aeiScore)
+  const savings = getTotalProjectedSavings(recommendations)
+
+  // Priority color helpers
+  const getPriorityBorderColor = (priority: string) => {
+    switch (priority) {
+      case 'critical':
+        return '#8B1A1A'
+      case 'high':
+        return '#B87A10'
+      case 'medium':
+        return '#1A4A7A'
+      case 'low':
+        return '#506070'
+      default:
+        return '#506070'
+    }
+  }
+
+  const getPriorityBg = (priority: string) => {
+    switch (priority) {
+      case 'critical':
+        return { bg: '#FFF0F0', text: '#8B1A1A' }
+      case 'high':
+        return { bg: '#FFF8E0', text: '#B87A10' }
+      case 'medium':
+        return { bg: '#EEF4FF', text: '#1A4A7A' }
+      case 'low':
+        return { bg: '#F5F5F5', text: '#506070' }
+      default:
+        return { bg: '#F5F5F5', text: '#506070' }
+    }
+  }
+
+  const getEffortColor = (effort: string) => {
+    switch (effort) {
+      case 'trivial':
+        return { bg: '#F0FFF8', text: '#10b981' }
+      case 'low':
+        return { bg: '#EEF4FF', text: '#1A4A7A' }
+      case 'medium':
+        return { bg: '#FFF8E0', text: '#B87A10' }
+      case 'high':
+        return { bg: '#FFF0F0', text: '#8B1A1A' }
+      default:
+        return { bg: '#F5F5F5', text: '#506070' }
+    }
+  }
 
   return (
     <div className="space-y-6">
-      {/* Comparison Header */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className={metricCard.base}>
-          <div className={metricCard.title}>Baseline</div>
-          <div className={metricCard.value}>{data.tokens.total}</div>
-          <div className={metricCard.subtitle}>Tokens used</div>
-        </div>
-        <div className={metricCard.base + ' border-cyan-500/50 border-2'}>
-          <div className="text-cyan-400 font-mono font-bold text-sm mb-2">Optimized</div>
-          <div className="text-2xl font-bold text-cyan-400">
-            {data.tokens.total - potentialTokenSavings}
-          </div>
-          <div className={metricCard.subtitle}>Tokens used</div>
-        </div>
-        <div className={metricCard.base + ' border-green-500/50 border-2'}>
-          <div className="text-green-400 font-mono font-bold text-sm mb-2">Savings</div>
-          <div className="text-2xl font-bold text-green-400">{potentialTokenSavings}</div>
-          <div className={metricCard.subtitle}>-{((potentialTokenSavings / data.tokens.total) * 100).toFixed(1)}%</div>
-        </div>
+      {/* Header */}
+      <div
+        style={{
+          fontSize: '10px',
+          fontFamily: 'Courier, monospace',
+          color: '#1A4A7A',
+          fontWeight: '500',
+          letterSpacing: '0.05em',
+          paddingBottom: '8px',
+          borderBottom: '1px solid #40D5E3',
+        }}
+      >
+        OPTIMIZATION RECOMMENDATIONS
       </div>
 
-      {/* Cost Comparison */}
-      <div className={metricCard.base}>
-        <div className={metricCard.title}>Cost Analysis</div>
-        <div className="space-y-4 mt-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-3 bg-primary/30 rounded">
-              <div className="text-xs text-muted-foreground mb-1">Baseline Cost</div>
-              <div className="text-lg font-bold text-foreground">${data.costs.total.toFixed(4)}</div>
-            </div>
-            <div className="p-3 bg-cyan-900/20 rounded border border-cyan-700/40">
-              <div className="text-xs text-cyan-300 mb-1">Optimized Cost</div>
-              <div className="text-lg font-bold text-cyan-400">${(data.costs.total * 0.85).toFixed(4)}</div>
-            </div>
-            <div className="p-3 bg-green-900/20 rounded border border-green-700/40">
-              <div className="text-xs text-green-300 mb-1">Monthly Savings</div>
-              <div className="text-lg font-bold text-green-400">${potentialCostSavings}</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Recommendations List */}
+      {recommendations.length > 0 ? (
+        <div className="space-y-3">
+          {recommendations.map((rec) => {
+            const colors = getPriorityBg(rec.priority)
+            const borderColor = getPriorityBorderColor(rec.priority)
+            const effortColors = getEffortColor(rec.effort)
+            const isExpanded = expandedRecId === rec.id
 
-      {/* Performance Comparison */}
-      <div className={metricCard.base}>
-        <div className={metricCard.title}>Performance Comparison</div>
-        <div className="space-y-4 mt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Baseline Latency</span>
-            <span className="font-mono font-bold text-foreground">{data.duration.ms}ms</span>
-          </div>
-          <div className="w-full bg-muted/30 rounded-full h-2">
-            <div className="bg-amber-500 h-2 rounded-full" style={{ width: '100%' }}></div>
-          </div>
+            return (
+              <div
+                key={rec.id}
+                style={{
+                  border: '1px solid #EEEEEE',
+                  borderLeft: `3pt solid ${borderColor}`,
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Header - Always Visible */}
+                <div
+                  onClick={() => setExpandedRecId(isExpanded ? null : rec.id)}
+                  style={{
+                    padding: '12px',
+                    cursor: 'pointer',
+                    backgroundColor: '#FAFAFA',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Badges */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          backgroundColor: colors.bg,
+                          color: colors.text,
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                        }}
+                      >
+                        {rec.priority}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          color: '#506070',
+                          padding: '2px 6px',
+                          backgroundColor: '#F5F5F5',
+                          borderRadius: '3px',
+                        }}
+                      >
+                        {rec.category.replace(/_/g, ' ')}
+                      </span>
+                    </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-cyan-300">Optimized Latency</span>
-            <span className="font-mono font-bold text-cyan-400">{data.duration.ms - potentialLatencySavings}ms</span>
-          </div>
-          <div className="w-full bg-muted/30 rounded-full h-2">
-            <div
-              className="bg-cyan-500 h-2 rounded-full"
-              style={{ width: `${((data.duration.ms - potentialLatencySavings) / data.duration.ms) * 100}%` }}
-            ></div>
-          </div>
+                    {/* Title */}
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
+                      {rec.title}
+                    </div>
 
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-accent/20">
-            <span className="text-sm text-green-300 font-medium">Improvement</span>
-            <span className="font-mono font-bold text-green-400">
-              {potentialLatencySavings}ms -{((potentialLatencySavings / data.duration.ms) * 100).toFixed(1)}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Model Comparison */}
-      {data.costs.byModel.length > 0 && (
-        <div className={metricCard.base}>
-          <div className={metricCard.title}>Model-by-Model Savings</div>
-          <div className="space-y-3 mt-4">
-            {data.costs.byModel.map((model) => (
-              <div key={`${model.provider}-${model.model}`} className="p-3 bg-primary/20 rounded">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium text-foreground">
-                    {model.model} ({model.provider})
+                    {/* Finding */}
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: '#506070',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {rec.finding}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">{model.percentage.toFixed(1)}% of total</div>
+
+                  {/* Right Side - Savings & Effort */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                    <div
+                      style={{
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        color: '#10b981',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      ${rec.projectedSavings.costUSDPerRun.toFixed(2)}/run
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        backgroundColor: effortColors.bg,
+                        color: effortColors.text,
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                      }}
+                    >
+                      {rec.effort}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="text-xs text-muted-foreground mb-1">Baseline</div>
-                    <div className="text-sm font-mono text-foreground">${model.cost.toFixed(4)}</div>
+
+                {/* Expanded Content */}
+                {isExpanded && (
+                  <div
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#FFFFFF',
+                      borderTop: '1px solid #EEEEEE',
+                    }}
+                  >
+                    <div style={{ fontSize: '12px', lineHeight: 1.6, color: '#1A3A5C' }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '600', color: '#506070', marginBottom: '4px' }}>
+                          ACTION
+                        </div>
+                        <div>→ {rec.action}</div>
+                      </div>
+
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '600', color: '#506070', marginBottom: '4px' }}>
+                          PROJECTED SAVINGS
+                        </div>
+                        <div>
+                          ${rec.projectedSavings.costUSDPerRun.toFixed(2)}/run (${rec.projectedSavings.costUSDMonthly100Runs.toFixed(2)}/month
+                          at 100 runs)
+                        </div>
+                        {rec.projectedSavings.tokenReductionPct && (
+                          <div>Token reduction: {rec.projectedSavings.tokenReductionPct}%</div>
+                        )}
+                        {rec.projectedSavings.latencyReductionMs && (
+                          <div>Latency reduction: {rec.projectedSavings.latencyReductionMs}ms</div>
+                        )}
+                      </div>
+
+                      {rec.affectedSteps.length > 0 && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '600', color: '#506070', marginBottom: '4px' }}>
+                            AFFECTED STEPS
+                          </div>
+                          <div>{rec.affectedSteps.join(', ')}</div>
+                        </div>
+                      )}
+
+                      {rec.affectedModels.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: '10px', fontWeight: '600', color: '#506070', marginBottom: '4px' }}>
+                            AFFECTED MODELS
+                          </div>
+                          <div>{rec.affectedModels.join(', ')}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-cyan-300 mb-1">Optimized</div>
-                    <div className="text-sm font-mono text-cyan-400">${(model.cost * 0.85).toFixed(4)}</div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs text-green-300 mb-1">Savings</div>
-                    <div className="text-sm font-mono text-green-400">${(model.cost * 0.15).toFixed(4)}</div>
-                  </div>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div style={{ padding: '24px', textAlign: 'center', color: '#506070' }}>
+          No recommendations available for this run.
         </div>
       )}
 
-      {/* Recommendation */}
-      <div className="p-4 bg-green-900/30 border border-green-700/50 rounded-lg">
-        <div className="text-sm text-green-300 font-medium mb-2">💡 Optimization Recommendation</div>
-        <p className="text-sm text-green-200/80">
-          Based on this run's telemetry, applying our suggested optimizations could save{' '}
-          <span className="font-bold">{((potentialTokenSavings / data.tokens.total) * 100).toFixed(1)}% tokens</span>
-          {' '}and{' '}
-          <span className="font-bold">${potentialCostSavings}</span> per run. Enable optimization to apply these automatically.
-        </p>
-      </div>
+      {/* Total Savings Box */}
+      {recommendations.length > 0 && (
+        <div
+          style={{
+            border: '1px solid #1A6B45',
+            borderRadius: '6px',
+            padding: '16px',
+            backgroundColor: '#F0FFF8',
+          }}
+        >
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981' }}>
+              ${savings.totalCostUSDPerRun.toFixed(2)} / run
+            </div>
+            <div style={{ fontSize: '10px', color: '#506070', marginTop: '2px' }}>
+              ${(savings.totalCostUSDMonthly).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / month at 100
+              runs
+            </div>
+          </div>
+          <div style={{ fontSize: '10px', color: '#1A3A5C' }}>
+            Estimated AEI after implementation: {savings.estimatedNewAEI.toFixed(0)}{' '}
+            {savings.estimatedNewAEI > aeiScore.overall && (
+              <span style={{ color: '#10b981', fontWeight: 'bold' }}>
+                (↑ +{(savings.estimatedNewAEI - aeiScore.overall).toFixed(0)} points)
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

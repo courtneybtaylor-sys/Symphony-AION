@@ -31,6 +31,14 @@ export enum EventKind {
   COMPARE_OPT = 'compare_opt',
   LATENCY = 'latency',
 
+  // Cost and cycle tracking
+  COST_EVENT = 'cost_event',
+  CYCLE_COMPLETE = 'cycle_complete',
+
+  // Failure and termination
+  RUN_ABORT = 'run_abort',
+  STEP_ERROR = 'step_error',
+
   // Legacy aliases for compatibility
   STEP_STARTED = 'phase_enter',
   STEP_COMPLETED = 'phase_exit',
@@ -70,6 +78,51 @@ export interface Event {
     sessionId?: string;
     environment?: string;
   };
+}
+
+/**
+ * Cost event payload — fired when cumulative cost crosses a threshold
+ */
+export interface CostEventPayload {
+  runId: string;
+  stepId?: string;
+  cumulativeCostUSD: number;
+  thresholdCrossedUSD: number;
+  alertLevel: 'warning' | 'critical';
+}
+
+/**
+ * Cycle complete payload — fired at end of a Neheh cycle (multi-run summary)
+ */
+export interface CycleCompletePayload {
+  runIds: string[];
+  cycleCount: number;
+  avgAEIScore: number;
+  avgCostUSD: number;
+  driftDetected: boolean;
+  driftMetrics?: Record<string, number>;
+}
+
+/**
+ * Run abort payload — fired when a run is cancelled or times out
+ */
+export interface RunAbortPayload {
+  runId: string;
+  reason: 'timeout' | 'user_cancelled' | 'budget_exceeded' | 'error';
+  abortedAtStep?: string;
+  partialCostUSD: number;
+}
+
+/**
+ * Step error payload — fired when a step throws an unhandled exception
+ */
+export interface StepErrorPayload {
+  runId: string;
+  stepId: string;
+  errorType: string;
+  errorMessage: string;
+  stackTrace?: string;
+  retryable: boolean;
 }
 
 /**

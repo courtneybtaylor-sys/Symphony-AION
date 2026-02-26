@@ -1,0 +1,271 @@
+{
+  "workflow_id": "accra-london-textile-001",
+  "workflow_name": "Accra → London Textile Micro-Trade Validation",
+  "corridor": "accra-london",
+  "start_time": "2026-02-25T10:00:00Z",
+  "end_time": "2026-02-25T10:12:45Z",
+  "framework": "CrewAI",
+  "tasks": [
+    {
+      "task_id": "retrieve-hs-codes",
+      "agent": "hs_classifier",
+      "description": "Retrieve & validate HS codes for textile shipment",
+      "start_time": "2026-02-25T10:00:00Z",
+      "end_time": "2026-02-25T10:00:15Z",
+      "actions": [
+        {
+          "type": "tool_call",
+          "sequence": 1,
+          "tool": "vector_search",
+          "input": {
+            "query": "HS codes for organic cotton fabric rolls",
+            "category": "textiles"
+          },
+          "output": {
+            "matches": 3,
+            "codes": ["5208.11", "5208.21", "5208.31"],
+            "confidence": [0.94, 0.87, 0.72]
+          },
+          "latency_ms": 245
+        },
+        {
+          "type": "model_call",
+          "sequence": 2,
+          "model": "text-embedding-3-small",
+          "input_tokens": 156,
+          "output_tokens": 0,
+          "cost_usd": 0.000156,
+          "latency_ms": 1200
+        }
+      ]
+    },
+    {
+      "task_id": "validate-fx-risk",
+      "agent": "fx_validator",
+      "description": "Calculate FX exposure for GBP/GHS transaction",
+      "start_time": "2026-02-25T10:00:15Z",
+      "end_time": "2026-02-25T10:00:47Z",
+      "actions": [
+        {
+          "type": "tool_call",
+          "sequence": 1,
+          "tool": "realtime_fx_api",
+          "input": {
+            "pair": "GBP/GHS",
+            "amount_gbp": 12500,
+            "lookback_days": 90
+          },
+          "output": {
+            "current_rate": 15.84,
+            "volatility_pct": 2.3,
+            "30day_range": [15.42, 16.21],
+            "historical_volatility": 1.8
+          },
+          "latency_ms": 420
+        },
+        {
+          "type": "model_call",
+          "sequence": 2,
+          "model": "gpt-4o-mini",
+          "input_tokens": 680,
+          "output_tokens": 245,
+          "cost_usd": 0.00137,
+          "latency_ms": 2100
+        },
+        {
+          "type": "validation",
+          "sequence": 3,
+          "check": "fx_volatility_threshold",
+          "threshold_pct": 2.5,
+          "actual_volatility": 2.3,
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "generate-compliance-report",
+      "agent": "compliance_engine",
+      "description": "Generate customs compliance report",
+      "start_time": "2026-02-25T10:00:47Z",
+      "end_time": "2026-02-25T10:07:30Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "sequence": 1,
+          "model": "claude-3-5-sonnet",
+          "input_tokens": 1240,
+          "output_tokens": 580,
+          "cost_usd": 0.00427,
+          "latency_ms": 3200
+        },
+        {
+          "type": "validation",
+          "sequence": 2,
+          "check": "document_schema",
+          "result": "fail",
+          "reason": "missing_tariff_classification"
+        },
+        {
+          "type": "retry",
+          "sequence": 3,
+          "attempt": 1,
+          "reason": "schema_mismatch"
+        },
+        {
+          "type": "model_call",
+          "sequence": 4,
+          "model": "gpt-4o",
+          "input_tokens": 1420,
+          "output_tokens": 650,
+          "cost_usd": 0.00894,
+          "latency_ms": 4100
+        },
+        {
+          "type": "validation",
+          "sequence": 5,
+          "check": "document_schema",
+          "result": "pass"
+        },
+        {
+          "type": "cost_event",
+          "sequence": 6,
+          "cost_so_far": 0.01614,
+          "model_breakdown": {
+            "text-embedding-3-small": 0.000156,
+            "gpt-4o-mini": 0.00137,
+            "claude-3-5-sonnet": 0.00427,
+            "gpt-4o": 0.00894
+          }
+        }
+      ]
+    },
+    {
+      "task_id": "optimize-routing",
+      "agent": "multi_provider_router",
+      "description": "Route through optimal provider chain (cost + latency)",
+      "start_time": "2026-02-25T10:07:30Z",
+      "end_time": "2026-02-25T10:12:30Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "sequence": 1,
+          "model": "gpt-4o-mini",
+          "input_tokens": 890,
+          "output_tokens": 420,
+          "cost_usd": 0.00187,
+          "latency_ms": 1850,
+          "provider_intent": "cost_optimization"
+        },
+        {
+          "type": "model_call",
+          "sequence": 2,
+          "model": "claude-3-5-haiku",
+          "input_tokens": 920,
+          "output_tokens": 340,
+          "cost_usd": 0.00082,
+          "latency_ms": 1200,
+          "provider_intent": "fallback_check"
+        },
+        {
+          "type": "validation",
+          "sequence": 3,
+          "check": "routing_decision",
+          "decision": "multi_provider_chain",
+          "result": "pass"
+        },
+        {
+          "type": "loss_classify",
+          "sequence": 4,
+          "loss_type": "premium_model_overuse",
+          "affected_steps": [2],
+          "savings_if_optimized": 0.00307,
+          "confidence": 0.87
+        },
+        {
+          "type": "compare_base",
+          "sequence": 5,
+          "baseline_cost": 0.02270,
+          "baseline_latency_ms": 14650
+        },
+        {
+          "type": "compare_opt",
+          "sequence": 6,
+          "optimized_cost": 0.01961,
+          "optimized_latency_ms": 13250,
+          "savings_pct": 13.6
+        }
+      ]
+    },
+    {
+      "task_id": "final_validation",
+      "agent": "compliance_engine",
+      "description": "Final cross-check before export approval",
+      "start_time": "2026-02-25T10:12:30Z",
+      "end_time": "2026-02-25T10:12:45Z",
+      "actions": [
+        {
+          "type": "validation",
+          "sequence": 1,
+          "check": "all_documents_complete",
+          "result": "pass"
+        },
+        {
+          "type": "validation",
+          "sequence": 2,
+          "check": "fx_hedged",
+          "result": "pass"
+        },
+        {
+          "type": "validation",
+          "sequence": 3,
+          "check": "tariff_classified",
+          "result": "pass"
+        },
+        {
+          "type": "latency",
+          "sequence": 4,
+          "total_latency_ms": 13250,
+          "phase_breakdown": {
+            "retrieve-hs-codes": 245,
+            "validate-fx-risk": 2520,
+            "generate-compliance-report": 7300,
+            "optimize-routing": 3050,
+            "final-validation": 135
+          }
+        },
+        {
+          "type": "cycle_complete",
+          "sequence": 5,
+          "total_cost": 0.01961,
+          "total_latency_ms": 13250,
+          "validation_passes": 8,
+          "validation_failures": 1,
+          "retries": 1
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_steps": 5,
+    "total_model_calls": 7,
+    "total_tool_calls": 2,
+    "total_validations": 8,
+    "validation_pass_rate": 0.875,
+    "total_cost_usd": 0.01961,
+    "total_latency_ms": 13250,
+    "frameworks_involved": ["CrewAI"],
+    "models_used": [
+      "text-embedding-3-small",
+      "gpt-4o-mini",
+      "claude-3-5-sonnet",
+      "gpt-4o",
+      "claude-3-5-haiku"
+    ],
+    "risk_flags_triggered": [
+      "PREMIUM_MODEL_OVERUSE",
+      "VALIDATION_LOOP"
+    ],
+    "expected_aei_score": 62,
+    "aei_tolerance_range": [54, 70]
+  }
+}

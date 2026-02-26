@@ -1,0 +1,120 @@
+{
+  "workflow_id": "litellm-multi-provider-001",
+  "framework": "LiteLLM",
+  "timestamp": "2026-02-25T14:30:00Z",
+  "description": "Multi-provider LLM call routing with fallback",
+  "tasks": [
+    {
+      "task_id": "primary_openai_call",
+      "agent": "router",
+      "description": "Route request to primary provider (OpenAI GPT-4o)",
+      "start_time": "2026-02-25T14:30:00Z",
+      "end_time": "2026-02-25T14:30:2.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gpt-4o",
+          "provider": "openai",
+          "input_tokens": 520,
+          "output_tokens": 185,
+          "cost_usd": 0.00349,
+          "latency_ms": 2500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "fallback_anthropic_call",
+      "agent": "fallback_router",
+      "description": "Fallback to Anthropic when OpenAI rate limited",
+      "start_time": "2026-02-25T14:30:3.0Z",
+      "end_time": "2026-02-25T14:30:4.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "claude-3-5-sonnet",
+          "provider": "anthropic",
+          "input_tokens": 520,
+          "output_tokens": 185,
+          "cost_usd": 0.00435,
+          "latency_ms": 1500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "batch_processing_gemini",
+      "agent": "batch_processor",
+      "description": "Batch multiple requests to Google Gemini",
+      "start_time": "2026-02-25T14:30:5.0Z",
+      "end_time": "2026-02-25T14:30:8.0Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gemini-1.5-pro",
+          "provider": "google",
+          "input_tokens": 1840,
+          "output_tokens": 620,
+          "cost_usd": 0.00368,
+          "latency_ms": 3000,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "embedding_call",
+      "agent": "embedding_service",
+      "description": "Generate embeddings for semantic search",
+      "start_time": "2026-02-25T14:30:8.5Z",
+      "end_time": "2026-02-25T14:30:9.2Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "text-embedding-3-large",
+          "provider": "openai",
+          "input_tokens": 2048,
+          "output_tokens": 0,
+          "cost_usd": 0.000512,
+          "latency_ms": 700,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "llama_local_call",
+      "agent": "local_processor",
+      "description": "Process locally with Llama (open source)",
+      "start_time": "2026-02-25T14:30:10.0Z",
+      "end_time": "2026-02-25T14:30:12.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "llama-2-70b",
+          "provider": "meta",
+          "input_tokens": 1200,
+          "output_tokens": 400,
+          "cost_usd": 0.001800,
+          "latency_ms": 2500,
+          "status": "pass"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_cost_usd": 0.0172,
+    "total_input_tokens": 6128,
+    "total_output_tokens": 1390,
+    "models_used": [
+      "gpt-4o",
+      "claude-3-5-sonnet",
+      "gemini-1.5-pro",
+      "text-embedding-3-large",
+      "llama-2-70b"
+    ],
+    "providers_used": ["openai", "anthropic", "google", "meta"],
+    "total_latency_ms": 10200,
+    "most_expensive_call": "claude-3-5-sonnet",
+    "expected_aei_score": 58,
+    "risk_flags_triggered": ["PREMIUM_MODEL_OVERUSE"]
+  }
+}

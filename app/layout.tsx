@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Symphony-AION',
     description: 'The first AI orchestrator where every token has a receipt and every agent has a conscience',
-    image: `${LIVE_URL}/og-banner.png`,
+    images: `${LIVE_URL}/og-banner.png`,
     type: 'website',
     url: LIVE_URL,
   },
