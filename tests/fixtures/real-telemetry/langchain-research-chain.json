@@ -1,0 +1,132 @@
+{
+  "workflow_id": "langchain-research-chain-001",
+  "framework": "LangChain",
+  "timestamp": "2026-02-25T15:00:00Z",
+  "description": "LangChain research assistant using tools and memory",
+  "tasks": [
+    {
+      "task_id": "user_query_understanding",
+      "agent": "query_analyzer",
+      "description": "Analyze and structure user research query",
+      "start_time": "2026-02-25T15:00:00Z",
+      "end_time": "2026-02-25T15:00:1.2Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gpt-4o-mini",
+          "input_tokens": 280,
+          "output_tokens": 95,
+          "cost_usd": 0.000089,
+          "latency_ms": 1200,
+          "status": "pass"
+        },
+        {
+          "type": "validation",
+          "check": "query_schema",
+          "result": "pass",
+          "latency_ms": 50
+        }
+      ]
+    },
+    {
+      "task_id": "web_search_tool",
+      "agent": "tool_executor",
+      "description": "Search the web for relevant sources",
+      "start_time": "2026-02-25T15:00:2.0Z",
+      "end_time": "2026-02-25T15:00:3.5Z",
+      "actions": [
+        {
+          "type": "tool_call",
+          "tool": "web_search",
+          "input": {
+            "query": "latest AI research 2026",
+            "num_results": 10
+          },
+          "output": {
+            "results": 8,
+            "avg_relevance": 0.82
+          },
+          "latency_ms": 1500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "content_synthesis",
+      "agent": "synthesis_chain",
+      "description": "Synthesize web results into coherent answer",
+      "start_time": "2026-02-25T15:00:4.0Z",
+      "end_time": "2026-02-25T15:00:8.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gpt-4o",
+          "input_tokens": 3850,
+          "output_tokens": 680,
+          "cost_usd": 0.01945,
+          "latency_ms": 4500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "citation_verification",
+      "agent": "fact_checker",
+      "description": "Verify facts and citations from synthesis",
+      "start_time": "2026-02-25T15:00:9.0Z",
+      "end_time": "2026-02-25T15:00:10.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gpt-4o-mini",
+          "input_tokens": 2100,
+          "output_tokens": 320,
+          "cost_usd": 0.000682,
+          "latency_ms": 1500,
+          "status": "pass"
+        },
+        {
+          "type": "validation",
+          "check": "citation_format",
+          "result": "pass",
+          "latency_ms": 100
+        }
+      ]
+    },
+    {
+      "task_id": "memory_storage",
+      "agent": "memory_manager",
+      "description": "Store conversation in long-term memory",
+      "start_time": "2026-02-25T15:00:11.0Z",
+      "end_time": "2026-02-25T15:00:11.8Z",
+      "actions": [
+        {
+          "type": "tool_call",
+          "tool": "vector_db_insert",
+          "input": {
+            "embedding_dim": 1536,
+            "vectors": 1
+          },
+          "output": {
+            "inserted": 1,
+            "vector_size_mb": 0.006
+          },
+          "latency_ms": 800,
+          "status": "pass"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_cost_usd": 0.0209,
+    "total_input_tokens": 6230,
+    "total_output_tokens": 1095,
+    "models_used": ["gpt-4o-mini", "gpt-4o"],
+    "tools_used": ["web_search", "vector_db_insert"],
+    "total_latency_ms": 10800,
+    "chain_length": 5,
+    "memory_operations": 1,
+    "expected_aei_score": 71,
+    "risk_flags_triggered": ["CONTEXT_BLOAT"]
+  }
+}

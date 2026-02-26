@@ -1,0 +1,138 @@
+{
+  "workflow_id": "crewai-stock-analysis-001",
+  "framework": "CrewAI",
+  "timestamp": "2026-02-25T15:30:00Z",
+  "description": "Parallel multi-agent stock analysis with retries",
+  "tasks": [
+    {
+      "task_id": "gather_stock_data",
+      "agent": "data_fetcher",
+      "description": "Gather historical and real-time stock data",
+      "start_time": "2026-02-25T15:30:00Z",
+      "end_time": "2026-02-25T15:30:3.5Z",
+      "actions": [
+        {
+          "type": "tool_call",
+          "tool": "financial_api",
+          "input": {
+            "symbols": ["AAPL", "MSFT", "GOOGL"],
+            "data_types": ["price", "volume", "pe_ratio"]
+          },
+          "output": {
+            "records_fetched": 3,
+            "data_quality": 0.95
+          },
+          "latency_ms": 3500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "technical_analysis",
+      "agent": "technical_analyst",
+      "description": "Perform technical analysis on stock charts",
+      "start_time": "2026-02-25T15:30:1.0Z",
+      "end_time": "2026-02-25T15:30:5.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "claude-3-5-sonnet",
+          "input_tokens": 2480,
+          "output_tokens": 420,
+          "cost_usd": 0.01389,
+          "latency_ms": 4500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "fundamental_analysis",
+      "agent": "fundamental_analyst",
+      "description": "Analyze financial statements and fundamentals",
+      "start_time": "2026-02-25T15:30:2.0Z",
+      "end_time": "2026-02-25T15:30:7.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gpt-4o",
+          "input_tokens": 3120,
+          "output_tokens": 580,
+          "cost_usd": 0.01846,
+          "latency_ms": 5500,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "risk_assessment",
+      "agent": "risk_analyst",
+      "description": "Assess market and company-specific risks",
+      "start_time": "2026-02-25T15:30:4.0Z",
+      "end_time": "2026-02-25T15:30:6.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "gpt-4o-mini",
+          "input_tokens": 1840,
+          "output_tokens": 380,
+          "cost_usd": 0.000834,
+          "latency_ms": 2500,
+          "status": "fail"
+        },
+        {
+          "type": "retry",
+          "reason": "timeout_exceeded",
+          "attempt": 1,
+          "latency_ms": 2500
+        },
+        {
+          "type": "model_call",
+          "model": "gpt-4o-mini",
+          "input_tokens": 1840,
+          "output_tokens": 380,
+          "cost_usd": 0.000834,
+          "latency_ms": 2200,
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "task_id": "investment_recommendation",
+      "agent": "investment_advisor",
+      "description": "Synthesize analyses into investment recommendation",
+      "start_time": "2026-02-25T15:30:8.0Z",
+      "end_time": "2026-02-25T15:30:10.5Z",
+      "actions": [
+        {
+          "type": "model_call",
+          "model": "claude-3-5-sonnet",
+          "input_tokens": 4250,
+          "output_tokens": 320,
+          "cost_usd": 0.02111,
+          "latency_ms": 2500,
+          "status": "pass"
+        },
+        {
+          "type": "validation",
+          "check": "recommendation_format",
+          "result": "pass",
+          "latency_ms": 150
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_cost_usd": 0.0589,
+    "total_input_tokens": 13530,
+    "total_output_tokens": 2080,
+    "models_used": ["claude-3-5-sonnet", "gpt-4o", "gpt-4o-mini"],
+    "tools_used": ["financial_api"],
+    "total_latency_ms": 10500,
+    "parallel_tasks": 4,
+    "retry_events": 1,
+    "retry_reason": "timeout_exceeded",
+    "expected_aei_score": 52,
+    "risk_flags_triggered": ["PREMIUM_MODEL_OVERUSE", "RETRY_ESCALATION"],
+    "optimization_potential": "High - use cheaper models for risk analysis"
+  }
+}
