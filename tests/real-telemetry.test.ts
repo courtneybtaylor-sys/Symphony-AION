@@ -18,7 +18,7 @@ import path from 'path';
 import { buildRunViewModel } from '@/lib/telemetry';
 import { calculateAEI } from '@/lib/aei-score';
 import { generateRecommendations } from '@/lib/recommendations';
-import { Run, Step, Status } from '@/lib/types';
+import { Run, Step, Status, EventKind } from '@/lib/types';
 
 // Load real telemetry fixtures
 const fixturesDir = path.join(__dirname, 'fixtures/real-telemetry');
@@ -31,31 +31,114 @@ function loadFixture(filename: string) {
 
 /**
  * Convert fixture format to Run interface format
- * Fixtures have tasks with actions, but Run expects steps
+ * Preserves all action-level data (model calls, tokens, costs, retries)
+ * by creating Event objects that buildRunViewModel() can extract
  */
 function fixtureToRun(fixture: any): Run {
   const workflowId = fixture.workflow_id || `run-${Date.now()}`;
   const baseTime = Date.now() - 3600000; // 1 hour ago
   const summary = fixture.summary || {};
+  const events: any[] = [];
+  let totalCost = 0;
+  let totalTokens = 0;
 
-  // Convert tasks to steps
-  const steps: Step[] = (fixture.tasks || []).map((task: any, idx: number) => {
-    const stepDuration = (task.actions || []).reduce((sum: number, action: any) => {
-      return sum + (action.latency_ms || 0);
-    }, 0) || 1000;
+  // Convert tasks to steps and extract actions into events
+  const steps: Step[] = (fixture.tasks || []).map((task: any, taskIdx: number) => {
+    let stepStartTime = baseTime + taskIdx * 2000;
+    let stepEndTime = stepStartTime;
+    const actions = task.actions || [];
+    const actionSummary: any = {
+      modelCalls: [] as any[],
+      toolCalls: [] as any[],
+      retries: [] as any[],
+      validations: [] as any[],
+    };
 
-    const taskStart = baseTime + idx * 2000;
-    const taskEnd = taskStart + stepDuration;
+    // Process each action and create events
+    actions.forEach((action: any, actionIdx: number) => {
+      const actionTime = stepStartTime + actionIdx * 500;
+      const actionDuration = action.latency_ms || 1000;
+
+      if (action.type === 'model_call' || action.model) {
+        // Create COST_RECORDED event for model call
+        const costEvent: any = {
+          id: `event-${taskIdx}-${actionIdx}`,
+          kind: EventKind.COST_RECORDED,
+          timestamp: actionTime,
+          runId: workflowId,
+          stepId: task.task_id || `step-${taskIdx}`,
+          data: {
+            model: action.model,
+            provider: action.provider || extractProvider(action.model),
+            costUSD: action.cost_usd || 0,
+            inputTokens: action.input_tokens || 0,
+            outputTokens: action.output_tokens || 0,
+            latencyMs: action.latency_ms || 0,
+          },
+        };
+        events.push(costEvent);
+
+        // Track tokens and costs
+        totalTokens += (action.input_tokens || 0) + (action.output_tokens || 0);
+        totalCost += action.cost_usd || 0;
+
+        actionSummary.modelCalls.push({
+          model: action.model,
+          inputTokens: action.input_tokens || 0,
+          outputTokens: action.output_tokens || 0,
+          costUSD: action.cost_usd || 0,
+          latencyMs: action.latency_ms || 0,
+        });
+
+        stepEndTime = Math.max(stepEndTime, actionTime + actionDuration);
+      } else if (action.type === 'tool_call' || action.tool) {
+        actionSummary.toolCalls.push({
+          tool: action.tool,
+          latencyMs: action.latency_ms || 0,
+        });
+        stepEndTime = Math.max(stepEndTime, actionTime + actionDuration);
+      } else if (action.type === 'retry') {
+        // Create RETRY event
+        const retryEvent: any = {
+          id: `event-retry-${taskIdx}-${actionIdx}`,
+          kind: EventKind.RETRY,
+          timestamp: actionTime,
+          runId: workflowId,
+          stepId: task.task_id || `step-${taskIdx}`,
+          data: {
+            reason: action.reason || 'unknown',
+            attempt: action.attempt || 1,
+            latencyMs: action.latency_ms || 0,
+          },
+        };
+        events.push(retryEvent);
+        actionSummary.retries.push({
+          reason: action.reason || 'unknown',
+          attempt: action.attempt || 1,
+        });
+      } else if (action.type === 'validation') {
+        actionSummary.validations.push({
+          check: action.check,
+          result: action.result,
+        });
+      }
+    });
+
+    // Calculate step duration from actions
+    const stepDuration = stepEndTime - stepStartTime || 1000;
 
     return {
-      id: task.task_id || `step-${idx}`,
-      name: task.description || task.agent || `Task ${idx}`,
+      id: task.task_id || `step-${taskIdx}`,
+      name: task.description || task.agent || `Task ${taskIdx}`,
       status: Status.COMPLETED,
-      startedAt: taskStart,
-      completedAt: taskEnd,
+      startedAt: stepStartTime,
+      completedAt: stepEndTime,
       durationMs: stepDuration,
-      input: {},
-      output: {},
+      input: task.input || {},
+      output: {
+        ...task.output,
+        ...actionSummary, // Include action summary in output
+      },
     };
   });
 
@@ -71,9 +154,22 @@ function fixtureToRun(fixture: any): Run {
     completedAt: endTime,
     durationMs: endTime - baseTime,
     steps: steps,
-    events: [],
+    events: events, // Now includes COST_RECORDED and RETRY events
     framework: fixture.framework,
   };
+}
+
+/**
+ * Extract provider from model name
+ */
+function extractProvider(model: string): string {
+  if (model.includes('gpt')) return 'openai';
+  if (model.includes('claude')) return 'anthropic';
+  if (model.includes('gemini')) return 'google';
+  if (model.includes('llama')) return 'meta';
+  if (model.includes('mistral')) return 'mistral';
+  if (model.includes('grok')) return 'xai';
+  return 'unknown';
 }
 
 describe('Real Telemetry Validation', () => {
@@ -170,27 +266,73 @@ describe('Real Telemetry Validation', () => {
   });
 
   describe('Real Telemetry Benchmarking', () => {
-    it('should benchmark AEI scores across all fixtures', () => {
+    it('should benchmark AEI scores across all fixtures with cost and token data', () => {
       const fixtures = fs.readdirSync(fixturesDir).filter((f) => f.endsWith('.json'));
-      const benchmarks: Array<{ fixture: string; aei: number; grade: string }> = [];
+      const benchmarks: Array<{
+        fixture: string;
+        aei: number;
+        grade: string;
+        cost: number;
+        costComponent?: number;
+        tokenComponent?: number;
+        latencyComponent?: number;
+        reliabilityComponent?: number;
+        recommendations: number;
+        criticalRecs: number;
+      }> = [];
 
       fixtures.forEach((fixture) => {
         const workflow = loadFixture(fixture);
         const run = fixtureToRun(workflow);
         const viewModel = buildRunViewModel(run);
         const aei = calculateAEI(viewModel);
+        const recommendations = generateRecommendations(viewModel, aei);
 
         benchmarks.push({
           fixture: path.basename(fixture),
           aei: aei.overall,
           grade: aei.grade,
+          cost: viewModel.costs.total,
+          costComponent: aei.components.costEfficiency,
+          tokenComponent: aei.components.tokenEfficiency,
+          latencyComponent: aei.components.latencyScore,
+          reliabilityComponent: aei.components.reliabilityScore,
+          recommendations: recommendations.length,
+          criticalRecs: recommendations.filter((r) => r.priority === 'critical').length,
         });
       });
 
-      console.log('\n  AEI Benchmark Results:');
-      benchmarks.forEach(({ fixture, aei, grade }) => {
-        console.log(`    ${fixture}: ${aei.toFixed(1)}/100 (${grade})`);
-      });
+      console.log('\n\n  ═══════════════════════════════════════════════════════════════');
+      console.log('  REAL TELEMETRY BENCHMARK RESULTS (WITH COST & TOKEN DATA)');
+      console.log('  ═══════════════════════════════════════════════════════════════');
+
+      benchmarks.forEach(
+        ({
+          fixture,
+          aei,
+          grade,
+          cost,
+          costComponent,
+          tokenComponent,
+          latencyComponent,
+          reliabilityComponent,
+          recommendations,
+          criticalRecs,
+        }) => {
+          console.log(`\n  ${fixture}`);
+          console.log(
+            `    AEI Score: ${aei.toFixed(1)}/100 (${grade}) | Total Cost: $${cost.toFixed(4)}`
+          );
+          console.log(
+            `    Components: Cost=${costComponent?.toFixed(0) || 'N/A'}, Token=${tokenComponent?.toFixed(0) || 'N/A'}, Latency=${latencyComponent?.toFixed(0) || 'N/A'}, Reliability=${reliabilityComponent?.toFixed(0) || 'N/A'}`
+          );
+          console.log(
+            `    Recommendations: ${recommendations} total (${criticalRecs} critical)`
+          );
+        }
+      );
+
+      console.log('\n  ═══════════════════════════════════════════════════════════════\n');
 
       // All scores should be valid
       benchmarks.forEach(({ aei }) => {
