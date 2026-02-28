@@ -1,0 +1,72 @@
+// Symphony-AION Database Schema
+// Phase 4b: PostgreSQL with Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String     @id @default(cuid())
+  email            String     @unique
+  password         String?
+  name             String?
+  subscriptionTier String     @default("free")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  uploads          Upload[]
+  auditJobs        AuditJob[]
+
+  @@index([email])
+}
+
+model Upload {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  telemetry    String    // JSON stored as text for SQLite compatibility
+  hash         String    @unique
+  framework    String?
+  modelCount   Int?
+  totalCostUSD Float?
+  createdAt    DateTime  @default(now())
+  auditJob     AuditJob?
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AuditJob {
+  id                   String    @id @default(cuid())
+  uploadId             String    @unique
+  upload               Upload    @relation(fields: [uploadId], references: [id])
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id])
+  stripeSessionId      String?   @unique
+  status               String    @default("queued")
+  aeiScore             Float?
+  reportToken          String?   @unique
+  reportTokenExpiresAt DateTime?
+  reportFilePath       String?
+  createdAt            DateTime  @default(now())
+  completedAt          DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([reportTokenExpiresAt])
+}
+
+model AnalyticsEvent {
+  id        Int      @id @default(autoincrement())
+  userId    String?
+  eventType String
+  metadata  String?  // JSON stored as text for SQLite compatibility
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, eventType])
+}
