@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (optional - currently using SQLite)
+  # postgres:
+  #   image: postgres:16-alpine
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: symphony_aion
+  #     POSTGRES_PASSWORD: dev_password
+  #     POSTGRES_DB: symphony_aion
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  # Redis for job queue (Phase 4c - Production)
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+
+  # Symphony-AION Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "file:./dev.db"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "dev-secret-change-in-production"
+      NEXT_PUBLIC_API_URL: "http://localhost:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+
+# volumes:
+#   postgres_data:
+#   redis_data:

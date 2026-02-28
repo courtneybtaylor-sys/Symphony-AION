@@ -5,7 +5,7 @@
  */
 
 import prisma from '@/lib/db';
-import { processAuditJob } from '@/lib/audit-processor';
+import { processAuditJob, type AuditJob } from '@/lib/audit-processor';
 
 export interface QueueJob {
   id: string;
@@ -89,12 +89,14 @@ async function processQueue() {
       const telemetryData = JSON.parse(upload.telemetry);
 
       // Process the audit
-      const auditJob = {
+      const auditJob: AuditJob = {
         id: job.id,
-        uploadId: job.data.uploadId,
-        userId: job.data.userId,
-        status: 'processing' as const,
-        createdAt: job.createdAt,
+        telemetryHash: job.data.telemetryHash,
+        customerEmail: 'unknown@example.com', // Will be updated from audit job record if available
+        paymentIntentId: '', // Will be populated from audit job if available
+        stripeSessionId: '', // Will be populated from audit job if available
+        status: 'processing',
+        createdAt: job.createdAt.toISOString(),
       };
 
       const result = await processAuditJob(auditJob, async () => telemetryData);

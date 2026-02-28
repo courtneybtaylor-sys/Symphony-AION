@@ -5,7 +5,8 @@
 
 import { RunViewModel } from '@/lib/types';
 import { AEIScore } from '@/lib/aei-score';
-import { AuditRecommendation, calculateROI } from '../types';
+import { AuditRecommendation } from '../types'
+import { calculateROI } from '../utils';
 
 export function checkPromptCaching(
   data: RunViewModel,
