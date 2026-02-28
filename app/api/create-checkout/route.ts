@@ -3,15 +3,29 @@
  * Creates a Stripe Checkout session for audit purchase
  * Phase 4a: Protected with authentication
  * Phase 4e: Validated with Zod
+ * Task 5: Payload size limits
+ * Task 6: Intake gate validation before checkout
  */
 
 import { NextResponse } from 'next/server';
 import { PRICING } from '@/lib/stripe';
 import { requireAuth } from '@/lib/auth/helpers';
 import { CheckoutRequestSchema } from '@/lib/validation/schemas';
+import { checkPayloadSize } from '@/lib/payload-limits';
+import { validateUpload } from '@/lib/intake-gate';
 import prisma from '@/lib/db';
 
 export async function POST(request: Request) {
+  // Task 5: Check payload size
+  const contentLength = request.headers.get('content-length');
+  const sizeCheck = checkPayloadSize(contentLength, '/api/create-checkout');
+  if (!sizeCheck.allowed) {
+    return NextResponse.json(
+      { error: sizeCheck.error || 'Payload too large' },
+      { status: 413 }
+    );
+  }
+
   // Phase 4a: Require authentication
   const auth = await requireAuth();
   if (auth.error) return auth.error;
@@ -43,6 +57,21 @@ export async function POST(request: Request) {
     if (!upload) {
       // In test mode, allow without DB verification
       console.warn(`[Checkout] Upload not found for hash: ${telemetryHash} (may be test mode)`);
+    } else {
+      // Task 6: Validate intake gate before checkout
+      const intakeResult = validateUpload(upload.telemetry as any);
+      if (!intakeResult.qualified) {
+        return NextResponse.json(
+          {
+            error: 'Upload does not qualify for audit',
+            reason: intakeResult.reason,
+            details: 'Please ensure your telemetry includes sufficient model call events with cost data',
+          },
+          { status: 403 }
+        );
+      }
+
+      console.log(`[Checkout] ✓ Intake gate passed for upload ${telemetryHash}`);
     }
 
     // Build metadata for Stripe session

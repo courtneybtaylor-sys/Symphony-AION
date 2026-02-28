@@ -3,12 +3,14 @@
  * Stripe webhook handler for payment events
  * Phase 4f: Webhook signature verification
  * Phase 4c: Queue job instead of synchronous processing
+ * Task 5: Payload size limits
  */
 
 import { NextResponse } from 'next/server';
 import { StripeEventSchema } from '@/lib/validation/schemas';
+import { checkPayloadSize } from '@/lib/payload-limits';
 import prisma from '@/lib/db';
-import { enqueueAuditJob } from '@/lib/queue';
+import { enqueueAuditJob as enqueueAuditJobBull } from '@/lib/audit-queue';
 import crypto from 'crypto';
 
 /**
@@ -47,6 +49,16 @@ function verifyWebhookSignature(
 
 export async function POST(request: Request) {
   try {
+    // Task 5: Check payload size
+    const contentLength = request.headers.get('content-length');
+    const sizeCheck = checkPayloadSize(contentLength, '/api/webhook');
+    if (!sizeCheck.allowed) {
+      return NextResponse.json(
+        { error: sizeCheck.error || 'Payload too large' },
+        { status: 413 }
+      );
+    }
+
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -106,13 +118,14 @@ export async function POST(request: Request) {
         // DB may not be available in test mode
       }
 
-      // Phase 4c: Enqueue job for async processing (returns immediately)
+      // Phase 4c: Enqueue job for async processing via Bull queue (returns immediately)
       if (uploadId && userId) {
         try {
-          const jobId = await enqueueAuditJob({
+          const jobId = await enqueueAuditJobBull({
             uploadId,
             userId,
             telemetryHash,
+            userEmail: customerEmail || 'unknown@example.com',
           });
           console.log(`[Webhook] Enqueued audit job: ${jobId}`);
         } catch (err) {
@@ -126,7 +139,7 @@ export async function POST(request: Request) {
           data: {
             userId: userId || null,
             eventType: 'payment_completed',
-            metadata: JSON.stringify({ sessionId: session.id, telemetryHash }),
+            metadata: { sessionId: session.id, telemetryHash } as any,
           },
         });
       } catch {

@@ -3,16 +3,28 @@
  * Accepts JSON telemetry, validates against intake gate, returns qualification summary
  * Phase 4a: Protected with authentication
  * Phase 4e: Validated with Zod
+ * Task 5: Payload size limits
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUpload } from '@/lib/intake-gate';
 import { requireAuth } from '@/lib/auth/helpers';
 import { TelemetryUploadSchema } from '@/lib/validation/schemas';
+import { checkPayloadSize, validateTelemetrySize } from '@/lib/payload-limits';
 import prisma from '@/lib/db';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
+  // Task 5: Check payload size
+  const contentLength = request.headers.get('content-length');
+  const sizeCheck = checkPayloadSize(contentLength, '/api/upload-telemetry');
+  if (!sizeCheck.allowed) {
+    return NextResponse.json(
+      { error: sizeCheck.error || 'Payload too large' },
+      { status: 413 }
+    );
+  }
+
   // Phase 4a: Require authentication
   const auth = await requireAuth();
   if (auth.error) return auth.error;
@@ -31,6 +43,15 @@ export async function POST(request: NextRequest) {
 
     const telemetry = body.telemetry || body;
 
+    // Task 5: Validate telemetry structure sizes
+    const telemetrySizeCheck = validateTelemetrySize(telemetry, '/api/upload-telemetry');
+    if (!telemetrySizeCheck.valid) {
+      return NextResponse.json(
+        { error: telemetrySizeCheck.error || 'Telemetry structure too large' },
+        { status: 413 }
+      );
+    }
+
     // Validate telemetry against intake gate
     const result = validateUpload(telemetry);
 
@@ -42,7 +63,7 @@ export async function POST(request: NextRequest) {
       await prisma.upload.create({
         data: {
           userId: auth.user.id,
-          telemetry: JSON.stringify(telemetry),
+          telemetry: telemetry as any,  // Prisma handles JSONB serialization
           hash: telemetryHash,
           framework: result.summary?.frameworkDetected || null,
           modelCount: result.summary?.modelsDetected?.length || null,
@@ -59,7 +80,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: auth.user.id,
           eventType: result.qualified ? 'qualified' : 'not_qualified',
-          metadata: JSON.stringify({ telemetryHash }),
+          metadata: { telemetryHash } as any,  // Prisma handles JSONB serialization
         },
       });
     } catch {

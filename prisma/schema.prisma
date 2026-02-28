@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,10 +16,15 @@ model User {
   password         String?
   name             String?
   subscriptionTier String     @default("free")
+  // Task 8: MFA fields
+  mfaEnabled       Boolean    @default(false)
+  mfaSecret        String?    // TOTP secret (base32 encoded)
+  mfaBackupCodes   String[]   @default([]) // Array of backup codes
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   uploads          Upload[]
   auditJobs        AuditJob[]
+  auditLogs        AuditLog[]
 
   @@index([email])
 }
@@ -28,7 +33,7 @@ model Upload {
   id           String    @id @default(cuid())
   userId       String
   user         User      @relation(fields: [userId], references: [id])
-  telemetry    String    // JSON stored as text for SQLite compatibility
+  telemetry    Json      @db.JsonB                // Native PostgreSQL JSONB for better query performance
   hash         String    @unique
   framework    String?
   modelCount   Int?
@@ -47,11 +52,13 @@ model AuditJob {
   userId               String
   user                 User      @relation(fields: [userId], references: [id])
   stripeSessionId      String?   @unique
-  status               String    @default("queued")
-  aeiScore             Float?
+  status               String    @default("queued")                               // queued, processing, completed, failed, pending_payment
+  aeiScore             Json?                                                      // Full AEI score breakdown
+  recommendations      Json?                                                      // Array of recommendations
   reportToken          String?   @unique
   reportTokenExpiresAt DateTime?
-  reportFilePath       String?
+  reportPath           String?
+  error                String?
   createdAt            DateTime  @default(now())
   completedAt          DateTime?
 
@@ -64,9 +71,27 @@ model AnalyticsEvent {
   id        Int      @id @default(autoincrement())
   userId    String?
   eventType String
-  metadata  String?  // JSON stored as text for SQLite compatibility
+  metadata  Json?    @db.JsonB                                // Native PostgreSQL JSONB
   createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([userId, eventType])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String                                            // upload_telemetry, create_checkout, payment_completed, etc.
+  resource  String?                                           // uploadId, auditJobId, etc.
+  ipAddress String?
+  userAgent String?  @db.VarChar(500)
+  result    String                                            // success, failure, blocked
+  metadata  Json?    @db.JsonB
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([result])
 }

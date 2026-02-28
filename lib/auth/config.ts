@@ -1,15 +1,20 @@
 /**
  * NextAuth Configuration
  * Phase 4a: Authentication with credentials provider
+ * Task 8: OAuth providers (Google, GitHub) and audit logging
  */
 
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
+import GitHubProvider from 'next-auth/providers/github';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
+import { logSuccessfulLogin, logFailedLogin } from '@/lib/audit-logger';
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    // Credentials provider (email/password)
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -42,6 +47,20 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+
+    // Task 8: Google OAuth provider
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      allowDangerousEmailAccountLinking: false,
+    }),
+
+    // Task 8: GitHub OAuth provider
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID || '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      allowDangerousEmailAccountLinking: false,
+    }),
   ],
   session: {
     strategy: 'jwt',
@@ -49,20 +68,60 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
+    error: '/login?error=auth-failed',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      // Task 8: Audit logging for OAuth signins
+      if (account && account.provider !== 'credentials' && user.email) {
+        try {
+          // Log OAuth signin
+          await logSuccessfulLogin(user.id || '', '', '', account.provider);
+        } catch {
+          // Don't fail auth due to logging issues
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+      }
+      if (account) {
+        token.provider = account.provider;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
+        (session.user as { id?: string; provider?: string }).id = token.id as string;
+        (session.user as { id?: string; provider?: string }).provider = token.provider as string;
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Only allow redirects to same origin for security
+      if (url.startsWith('/')) return url;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    },
   },
   secret: process.env.NEXTAUTH_SECRET || 'development-secret-change-in-production',
+  events: {
+    async signIn({ user, account }) {
+      // Task 8: Log all signin events
+      if (user.id && account?.provider === 'credentials') {
+        try {
+          await logSuccessfulLogin(user.id, '', '', 'credentials');
+        } catch {
+          // Ignore logging errors
+        }
+      }
+    },
+    async signOut() {
+      // Task 8: Log signout events
+      // (requires request context from middleware)
+    },
+  },
 };
