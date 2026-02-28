@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       await prisma.upload.create({
         data: {
           userId: auth.user.id,
-          telemetry: JSON.stringify(telemetry),
+          telemetry: telemetry as any,  // Prisma handles JSONB serialization
           hash: telemetryHash,
           framework: result.summary?.frameworkDetected || null,
           modelCount: result.summary?.modelsDetected?.length || null,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: auth.user.id,
           eventType: result.qualified ? 'qualified' : 'not_qualified',
-          metadata: JSON.stringify({ telemetryHash }),
+          metadata: { telemetryHash } as any,  // Prisma handles JSONB serialization
         },
       });
     } catch {

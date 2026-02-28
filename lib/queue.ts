@@ -86,7 +86,8 @@ async function processQueue() {
 
       if (!upload) throw new Error(`Upload ${job.data.uploadId} not found`);
 
-      const telemetryData = JSON.parse(upload.telemetry);
+      // Telemetry is now stored as JSONB (Json type), no need to parse
+      const telemetryData = upload.telemetry as Record<string, unknown>;
 
       // Process the audit
       const auditJob: AuditJob = {
@@ -102,18 +103,27 @@ async function processQueue() {
       const result = await processAuditJob(auditJob, async () => telemetryData);
 
       // Update DB with results
+      const updateData: any = {
+        status: 'complete',
+        completedAt: new Date(),
+      };
+
+      if (result.aeiScore !== undefined) {
+        updateData.aeiScore = result.aeiScore;
+      }
+      if (result.reportToken) {
+        updateData.reportToken = result.reportToken;
+      }
+      if (result.reportTokenExpiresAt) {
+        updateData.reportTokenExpiresAt = new Date(result.reportTokenExpiresAt);
+      }
+      if (result.reportFilePath) {
+        updateData.reportFilePath = result.reportFilePath;
+      }
+
       await prisma.auditJob.update({
         where: { uploadId: job.data.uploadId },
-        data: {
-          status: 'complete',
-          aeiScore: result.aeiScore ?? null,
-          reportToken: result.reportToken ?? null,
-          reportTokenExpiresAt: result.reportTokenExpiresAt
-            ? new Date(result.reportTokenExpiresAt)
-            : null,
-          reportFilePath: result.reportFilePath ?? null,
-          completedAt: new Date(),
-        },
+        data: updateData,
       });
 
       job.status = 'complete';
