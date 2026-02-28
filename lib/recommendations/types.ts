@@ -1,6 +1,6 @@
 /**
- * Recommendation Types
- * Phase 5a: Shared types for recommendation rules
+ * Recommendations Engine - Shared Types
+ * Phase 5a: Modular recommendations architecture
  */
 
 export type RecommendationPriority = 'critical' | 'high' | 'medium' | 'low';
@@ -28,24 +28,21 @@ export interface AuditRecommendation {
   priority: RecommendationPriority;
   category: RecommendationCategory;
   title: string;
-  finding: string;
-  action: string;
+  finding: string; // What AION observed (specific, with numbers)
+  action: string; // Exactly what to do (specific, with code hints)
   projectedSavings: ProjectedSavings;
   effort: 'trivial' | 'low' | 'medium' | 'high';
-  roi: number;
+  roi: number; // savings / estimated_impl_cost, e.g. 48 = 4800% ROI
   affectedSteps: string[];
   affectedModels: string[];
-  confidence: RecommendationConfidence;
-  confidenceRationale: string;
+  confidence: RecommendationConfidence; // high | medium | experimental
+  confidenceRationale: string; // one sentence explaining confidence
 }
 
-export function calculateROI(savings: number, effort: string): number {
-  const effortCosts: Record<string, number> = {
-    trivial: 0.01,
-    low: 0.25,
-    medium: 1.0,
-    high: 3.0,
-  };
-  const cost = effortCosts[effort] || 1;
-  return Math.round((savings / Math.max(cost, 0.01)) * 100);
-}
+/**
+ * Rule function signature - all rules implement this
+ */
+export type RuleFunction = (
+  data: any, // RunViewModel
+  aeiScore?: any // AEIScore (optional for some rules)
+) => AuditRecommendation | null;

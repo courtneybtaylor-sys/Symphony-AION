@@ -8,7 +8,7 @@ import { checkRetryElimination } from '@/lib/recommendations/rules/retry-elimina
 import { checkRoutingFix } from '@/lib/recommendations/rules/routing-fix';
 import { checkParallelExecution } from '@/lib/recommendations/rules/parallel-execution';
 import { checkFrameworkOverhead } from '@/lib/recommendations/rules/framework-overhead';
-import { rules } from '@/lib/recommendations/rules';
+import { RECOMMENDATION_RULES } from '@/lib/recommendations/rules';
 import { RunViewModel, EventKind, Status } from '@/lib/types';
 import { AEIScore } from '@/lib/aei-score';
 
@@ -114,12 +114,12 @@ function createMockAEIScore(overrides: Partial<AEIScore> = {}): AEIScore {
 describe('Recommendation Rules', () => {
   describe('rules registry', () => {
     it('contains exactly 8 rules', () => {
-      expect(rules).toHaveLength(8);
+      expect(RECOMMENDATION_RULES).toHaveLength(8);
     });
 
     it('all rules are functions', () => {
-      rules.forEach((rule) => {
-        expect(typeof rule).toBe('function');
+      RECOMMENDATION_RULES.forEach((rule) => {
+        expect(typeof rule.check).toBe('function');
       });
     });
   });
