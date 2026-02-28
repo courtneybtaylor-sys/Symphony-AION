@@ -3,10 +3,12 @@
  * Stripe webhook handler for payment events
  * Phase 4f: Webhook signature verification
  * Phase 4c: Queue job instead of synchronous processing
+ * Task 5: Payload size limits
  */
 
 import { NextResponse } from 'next/server';
 import { StripeEventSchema } from '@/lib/validation/schemas';
+import { checkPayloadSize } from '@/lib/payload-limits';
 import prisma from '@/lib/db';
 import { enqueueAuditJob as enqueueAuditJobBull } from '@/lib/audit-queue';
 import crypto from 'crypto';
@@ -47,6 +49,16 @@ function verifyWebhookSignature(
 
 export async function POST(request: Request) {
   try {
+    // Task 5: Check payload size
+    const contentLength = request.headers.get('content-length');
+    const sizeCheck = checkPayloadSize(contentLength, '/api/webhook');
+    if (!sizeCheck.allowed) {
+      return NextResponse.json(
+        { error: sizeCheck.error || 'Payload too large' },
+        { status: 413 }
+      );
+    }
+
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

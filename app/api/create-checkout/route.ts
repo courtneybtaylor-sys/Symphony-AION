@@ -3,15 +3,27 @@
  * Creates a Stripe Checkout session for audit purchase
  * Phase 4a: Protected with authentication
  * Phase 4e: Validated with Zod
+ * Task 5: Payload size limits
  */
 
 import { NextResponse } from 'next/server';
 import { PRICING } from '@/lib/stripe';
 import { requireAuth } from '@/lib/auth/helpers';
 import { CheckoutRequestSchema } from '@/lib/validation/schemas';
+import { checkPayloadSize } from '@/lib/payload-limits';
 import prisma from '@/lib/db';
 
 export async function POST(request: Request) {
+  // Task 5: Check payload size
+  const contentLength = request.headers.get('content-length');
+  const sizeCheck = checkPayloadSize(contentLength, '/api/create-checkout');
+  if (!sizeCheck.allowed) {
+    return NextResponse.json(
+      { error: sizeCheck.error || 'Payload too large' },
+      { status: 413 }
+    );
+  }
+
   // Phase 4a: Require authentication
   const auth = await requireAuth();
   if (auth.error) return auth.error;
