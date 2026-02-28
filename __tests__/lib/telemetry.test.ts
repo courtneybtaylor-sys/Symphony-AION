@@ -460,6 +460,12 @@ describe('estimateRunCompletion', () => {
           completedAt: Date.now() - 1000,
           durationMs: 4000,
         },
+        {
+          id: 'step-2',
+          name: 'Step 2',
+          status: Status.RUNNING,
+          startedAt: Date.now(),
+        },
       ],
     });
     const estimate = estimateRunCompletion(run);

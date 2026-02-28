@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { StripeEventSchema } from '@/lib/validation/schemas';
 import prisma from '@/lib/db';
-import { enqueueAuditJob } from '@/lib/queue';
+import { enqueueAuditJob as enqueueAuditJobBull } from '@/lib/audit-queue';
 import crypto from 'crypto';
 
 /**
@@ -106,13 +106,14 @@ export async function POST(request: Request) {
         // DB may not be available in test mode
       }
 
-      // Phase 4c: Enqueue job for async processing (returns immediately)
+      // Phase 4c: Enqueue job for async processing via Bull queue (returns immediately)
       if (uploadId && userId) {
         try {
-          const jobId = await enqueueAuditJob({
+          const jobId = await enqueueAuditJobBull({
             uploadId,
             userId,
             telemetryHash,
+            userEmail: customerEmail || 'unknown@example.com',
           });
           console.log(`[Webhook] Enqueued audit job: ${jobId}`);
         } catch (err) {
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
           data: {
             userId: userId || null,
             eventType: 'payment_completed',
-            metadata: JSON.stringify({ sessionId: session.id, telemetryHash }),
+            metadata: { sessionId: session.id, telemetryHash } as any,
           },
         });
       } catch {
