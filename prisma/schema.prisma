@@ -16,6 +16,8 @@ model User {
   password         String?
   name             String?
   subscriptionTier String     @default("free")
+  // Role-based access control
+  role             String     @default("user") // user, admin, super_admin
   // Task 8: MFA fields
   mfaEnabled       Boolean    @default(false)
   mfaSecret        String?    // TOTP secret (base32 encoded)
@@ -27,6 +29,7 @@ model User {
   auditLogs        AuditLog[]
 
   @@index([email])
+  @@index([role])
 }
 
 model Upload {
