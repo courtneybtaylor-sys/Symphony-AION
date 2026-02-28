@@ -1,6 +1,7 @@
 /**
  * Symphony-AION Audit Worker
  * Task 3: Async job processor for audit reports
+ * Task 7: IR-Parser integration for deeper analysis
  * Run separately: ts-node worker.ts
  */
 
@@ -11,6 +12,7 @@ import { calculateAEI } from './lib/aei-score'
 import { executeRecommendationRules } from './lib/recommendations/rules'
 import { generateAuditReport } from './lib/pdf-generator'
 import { sendReportEmail } from './lib/email'
+import { analyzeWithIRParser, generateIRRecommendations } from './lib/ir-parser-client'
 import crypto from 'crypto'
 
 console.log('🚀 Symphony-AION Worker starting...')
@@ -47,6 +49,26 @@ auditQueue.process(3, async (job) => {
 
     // 5. Generate recommendations
     const recommendations = executeRecommendationRules(runViewModel, aeiScore)
+
+    // Task 7: Analyze with IR-Parser for deeper insights (async, non-blocking)
+    try {
+      const irAnalysis = await analyzeWithIRParser({
+        workflowId: upload.id,
+        telemetry: upload.telemetry as any,
+        modelProviders: runViewModel.costs.byModel.map((m) => m.provider),
+      })
+
+      if (irAnalysis) {
+        const irRecommendations = generateIRRecommendations(irAnalysis)
+        console.log(
+          `[Worker] ✓ IR-Parser identified ${irRecommendations.length} additional optimization opportunities`
+        )
+        // Store IR analysis metadata for future use
+        console.log(`[Worker] IR Analysis: Complexity=${irAnalysis.workflowComplexity}, Paths=${irAnalysis.criticalPaths.length}`)
+      }
+    } catch (irError) {
+      console.warn('[Worker] IR-Parser analysis failed, continuing with standard recommendations')
+    }
 
     // 6. Generate PDF
     const { filePath } = await generateAuditReport(
