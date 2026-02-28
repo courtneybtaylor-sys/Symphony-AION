@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Sidebar from '@/components/sidebar'
+import SessionProvider from '@/components/SessionProvider'
 
 const LIVE_URL = 'https://symphony-aion.vercel.app'
 
@@ -32,12 +33,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <body className="font-sans">
-        <div className="flex h-screen bg-primary">
-          <Sidebar />
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
-        </div>
+        <SessionProvider>
+          <div className="flex h-screen bg-primary">
+            <Sidebar />
+            <main className="flex-1 overflow-auto">
+              {children}
+            </main>
+          </div>
+        </SessionProvider>
       </body>
     </html>
   )

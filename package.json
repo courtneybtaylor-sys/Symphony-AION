@@ -12,18 +12,25 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "@vitejs/plugin-react": "^5.1.4",
+    "bcryptjs": "^3.0.3",
+    "crypto-js": "^4.2.0",
     "jspdf": "^4.2.0",
     "lucide-react": "^0.376.0",
     "next": "^14.2.0",
+    "next-auth": "^4.24.13",
+    "prisma": "^5.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.10",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.42",

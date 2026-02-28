@@ -1,16 +1,24 @@
 /**
  * GET /api/runs/[id]
  * Fetch a specific run by ID
+ * Phase 4a: Protected with authentication
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { MOCK_RUNS } from '@/lib/mock-data';
 import { ApiResponse, Run } from '@/lib/types';
+import { requireAuth } from '@/lib/auth/helpers';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } },
 ): Promise<NextResponse<ApiResponse<Run>>> {
+  // Phase 4a: Require authentication
+  const auth = await requireAuth();
+  if (auth.error) {
+    return auth.error as NextResponse<ApiResponse<Run>>;
+  }
+
   try {
     const { id } = params;
 
@@ -28,7 +36,6 @@ export async function GET(
       );
     }
 
-    // Simulate lookup from mock data
     const run = MOCK_RUNS.find((r) => r.id === id);
 
     if (!run) {
