@@ -16,6 +16,10 @@ model User {
   password         String?
   name             String?
   subscriptionTier String     @default("free")
+  // Task 8: MFA fields
+  mfaEnabled       Boolean    @default(false)
+  mfaSecret        String?    // TOTP secret (base32 encoded)
+  mfaBackupCodes   String[]   @default([]) // Array of backup codes
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   uploads          Upload[]
