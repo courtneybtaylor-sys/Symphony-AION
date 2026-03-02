@@ -27,28 +27,34 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        // Dynamically import prisma only when needed
-        const { default: prisma } = await import('@/lib/db');
+        try {
+          // Dynamically import and get Prisma client only when needed
+          const { getPrisma } = await import('@/lib/db');
+          const prisma = await getPrisma();
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
 
-        if (!user || !user.password) {
-          throw new Error('Invalid email or password');
+          if (!user || !user.password) {
+            throw new Error('Invalid email or password');
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValid) {
+            throw new Error('Invalid email or password');
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error: any) {
+          console.error('[Auth] Authorization error:', error.message);
+          throw new Error('Authentication failed. Please try again later.');
         }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isValid) {
-          throw new Error('Invalid email or password');
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
       },
     }),
 
@@ -103,7 +109,8 @@ export const authOptions: NextAuthOptions = {
         } else {
           // Fetch current role from DB
           try {
-            const { default: prisma } = await import('@/lib/db');
+            const { default: getPrisma } = await import('@/lib/db');
+            const prisma = await getPrisma();
             const dbUser = await prisma.user.findUnique({
               where: { id: user.id },
               select: { role: true },

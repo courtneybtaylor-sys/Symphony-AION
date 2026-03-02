@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
 
     // Phase 4b: Store upload in database
     try {
-      const { default: prisma } = await import('@/lib/db');
+      const { getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       await prisma.upload.create({
         data: {
           userId: auth.user.id,
@@ -76,7 +77,8 @@ export async function POST(request: NextRequest) {
 
     // Log analytics event
     try {
-      const { default: prisma } = await import('@/lib/db');
+      const { getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       await prisma.analyticsEvent.create({
         data: {
           userId: auth.user.id,
