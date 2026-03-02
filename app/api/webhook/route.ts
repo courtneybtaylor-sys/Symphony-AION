@@ -6,6 +6,7 @@
  * Task 5: Payload size limits
  */
 
+import '@/lib/prisma-init'
 import { NextResponse } from 'next/server';
 import { StripeEventSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize } from '@/lib/payload-limits';

@@ -5,6 +5,7 @@
  * Phase 4e: Validated with Zod
  */
 
+import '@/lib/prisma-init'
 import { NextRequest, NextResponse } from 'next/server';
 import { getDailyStats, getSummaryStats } from '@/lib/usage-logger';
 import { requireAuth } from '@/lib/auth/helpers';

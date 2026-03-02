@@ -6,6 +6,7 @@
  * Task 5: Payload size limits
  */
 
+import '@/lib/prisma-init'
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUpload } from '@/lib/intake-gate';
 import { requireAuth } from '@/lib/auth/helpers';

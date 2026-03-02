@@ -3,6 +3,7 @@
  * Phase 4a: User registration endpoint
  */
 
+import '@/lib/prisma-init'
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';

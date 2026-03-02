@@ -6,6 +6,7 @@
  * Phase 6: Real PDF generation from AEI scores and recommendations
  */
 
+import '@/lib/prisma-init'
 import { NextResponse } from 'next/server';
 import { DownloadRequestSchema } from '@/lib/validation/schemas';
 import prisma from '@/lib/db';
