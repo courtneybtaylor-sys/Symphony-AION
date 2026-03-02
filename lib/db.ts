@@ -1,57 +1,57 @@
 /**
- * Database Client Singleton
- * Phase 4b: Prisma client with connection pooling
+ * Database Client Factory
+ * Phase 4b: Prisma client with lazy async initialization
  * 
- * This module provides lazy initialization of the Prisma client.
- * The client is not created until it's actually needed, which allows
- * the app to start even if prisma generate hasn't run yet.
+ * This module does NOT import Prisma at module load time.
+ * All Prisma access is deferred until actually needed via async function calls.
  */
 
-let prismaClient: any = null;
-let initError: Error | null = null;
+let prismaClient: any | null = null;
 
-function initializePrisma() {
+/**
+ * Get or create the Prisma client.
+ * This must be called from async contexts.
+ */
+export async function getPrisma() {
   if (prismaClient) return prismaClient;
-  if (initError) throw initError;
 
-  try {
-    // Try to import the generated Prisma client
-    const { PrismaClient } = require('@prisma/client');
-    
-    const globalForPrisma = globalThis as unknown as {
-      prisma: any;
-    };
+  const { PrismaClient } = await import('@prisma/client');
+  prismaClient = new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
 
-    prismaClient =
-      globalForPrisma.prisma ??
-      new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-      });
-
-    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prismaClient;
-    
-    return prismaClient;
-  } catch (error: any) {
-    initError = error;
-    console.error('[Prisma] Client initialization failed:', error.message);
-    
-    // Provide helpful error message
-    if (error.message?.includes('.prisma/client')) {
-      console.error('[Prisma] The Prisma client has not been generated yet.');
-      console.error('[Prisma] Run: npm run prisma:generate');
-      console.error('[Prisma] Or install dependencies: npm install');
-    }
-    
-    throw error;
-  }
+  return prismaClient;
 }
 
-export const prisma = new Proxy({}, {
-  get: (target, prop) => {
-    const client = initializePrisma();
-    return (client as any)[prop];
+/**
+ * Backward compatibility export for old code that does:
+ * const prisma = await import('@/lib/db').then(m => m.default);
+ */
+let defaultExport: any = null;
+Object.defineProperty(module, 'exports', {
+  get() {
+    if (!defaultExport) {
+      defaultExport = new Proxy({}, {
+        get: (target, prop) => {
+          if (prop === 'getPrisma' || prop === '__esModule') {
+            return module.exports[prop];
+          }
+          throw new Error(
+            `[Prisma] Cannot access prisma.${String(prop)} - Prisma was not generated.\n` +
+            `Fix: Run "npm install" then restart the dev server.`
+          );
+        },
+      });
+    }
+    return defaultExport;
   },
-}) as any;
+  set() {
+    // Ignore set attempts
+  },
+});
 
-export default prisma;
+// Make getPrisma available as default export for: const prisma = await require('@/lib/db').default()
+exports.default = getPrisma;
+exports.getPrisma = getPrisma;
+
 
