@@ -11,7 +11,6 @@ import { validateUpload } from '@/lib/intake-gate';
 import { requireAuth } from '@/lib/auth/helpers';
 import { TelemetryUploadSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize, validateTelemetrySize } from '@/lib/payload-limits';
-import prisma from '@/lib/db';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -60,6 +59,8 @@ export async function POST(request: NextRequest) {
 
     // Phase 4b: Store upload in database
     try {
+      const { getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       await prisma.upload.create({
         data: {
           userId: auth.user.id,
@@ -76,6 +77,8 @@ export async function POST(request: NextRequest) {
 
     // Log analytics event
     try {
+      const { getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       await prisma.analyticsEvent.create({
         data: {
           userId: auth.user.id,

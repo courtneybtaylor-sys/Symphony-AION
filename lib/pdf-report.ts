@@ -1020,3 +1020,177 @@ export async function generateAuditReport(
     throw error;
   }
 }
+
+/**
+ * API wrapper for PDF generation with audit job data
+ * Used by download-report endpoint to generate PDFs from stored audit data
+ */
+export async function generatePdfReport(options: {
+  jobId: string;
+  aeiScore: any;
+  recommendations: any[];
+  telemetry: any;
+  framework?: string;
+  generatedAt: string;
+}): Promise<jsPDF> {
+  // For now, return a jsPDF instance with a basic report
+  // In production, this would convert the audit data into RunViewModel format
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 18;
+  const contentWidth = pageWidth - 2 * margin;
+  let y = margin;
+
+  // Cover page
+  doc.setFillColor(8, 8, 15);
+  doc.rect(0, 0, pageWidth, 297, 'F');
+
+  doc.setTextColor(201, 168, 76);
+  doc.setFontSize(32);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Symphony-AION', pageWidth / 2, 60, { align: 'center' });
+
+  doc.setTextColor(42, 184, 196);
+  doc.setFontSize(16);
+  doc.text('AI Efficiency Intelligence Report', pageWidth / 2, 80, { align: 'center' });
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  y = 120;
+  doc.text(`Job ID: ${options.jobId.substring(0, 20)}...`, pageWidth / 2, y, {
+    align: 'center',
+  });
+  y += 10;
+  doc.text(`Generated: ${new Date(options.generatedAt).toLocaleDateString()}`, pageWidth / 2, y, {
+    align: 'center',
+  });
+  if (options.framework) {
+    y += 10;
+    doc.text(`Framework: ${options.framework}`, pageWidth / 2, y, { align: 'center' });
+  }
+
+  // AEI Grade circle
+  const gradeColor =
+    options.aeiScore?.grade === 'A'
+      ? [76, 175, 130]
+      : options.aeiScore?.grade === 'B'
+        ? [201, 168, 76]
+        : [200, 68, 90];
+
+  doc.setFillColor(...(gradeColor as [number, number, number]));
+  doc.circle(pageWidth / 2, 160, 20, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text(options.aeiScore?.grade || 'N/A', pageWidth / 2, 167, { align: 'center' });
+
+  // AEI score
+  doc.setTextColor(204, 204, 238);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  const score = options.aeiScore?.overall ? Math.round(options.aeiScore.overall) : 'N/A';
+  doc.text(`AEI Score: ${score}/100`, pageWidth / 2, 190, { align: 'center' });
+
+  // Executive Summary Page
+  doc.addPage();
+  y = margin;
+
+  doc.setTextColor(8, 8, 15);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Executive Summary', margin, y);
+  y += 12;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(50, 50, 80);
+
+  // Metrics
+  const summaryMetrics = [
+    ['AEI Score', `${score}/100 (Grade ${options.aeiScore?.grade || 'N/A'})`],
+    ['Recommendations', `${options.recommendations?.length || 0} opportunities`],
+    ['Generated', new Date(options.generatedAt).toLocaleDateString()],
+    ['Framework', options.framework || 'Unknown'],
+  ];
+
+  for (const [label, value] of summaryMetrics) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(label, margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(value, margin + 60, y);
+    y += 8;
+  }
+
+  // Recommendations Page (if available)
+  if (options.recommendations && options.recommendations.length > 0) {
+    doc.addPage();
+    y = margin;
+
+    doc.setTextColor(8, 8, 15);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Optimization Recommendations', margin, y);
+    y += 12;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(50, 50, 80);
+
+    const recList = Array.isArray(options.recommendations)
+      ? options.recommendations.slice(0, 8)
+      : [];
+
+    for (let i = 0; i < recList.length; i++) {
+      const rec = recList[i];
+      if (y > 250) {
+        doc.addPage();
+        y = margin;
+      }
+
+      // Recommendation item
+      const priorityColor =
+        rec.priority === 'critical'
+          ? [200, 68, 90]
+          : rec.priority === 'high'
+            ? [232, 160, 32]
+            : [42, 184, 196];
+
+      doc.setFillColor(...(priorityColor as [number, number, number]));
+      doc.rect(margin, y, 4, 10, 'F');
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(8, 8, 15);
+      doc.text(`${i + 1}. ${rec.title || 'Recommendation'}`, margin + 8, y + 3);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 110);
+      const lines = doc.splitTextToSize(rec.finding || rec.description || '', contentWidth - 8);
+      doc.text(lines, margin + 8, y + 10);
+      y += 10 + lines.length * 4;
+
+      if (rec.projectedSavings?.costUSDPerRun) {
+        doc.setTextColor(76, 175, 130);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(
+          `Est. savings: $${rec.projectedSavings.costUSDPerRun.toFixed(2)}/run`,
+          margin + 8,
+          y
+        );
+        y += 8;
+      }
+
+      y += 4;
+    }
+  }
+
+  return doc;
+}

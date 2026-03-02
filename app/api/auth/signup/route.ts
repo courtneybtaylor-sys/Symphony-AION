@@ -5,7 +5,6 @@
 
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import prisma from '@/lib/db';
 import { z } from 'zod';
 
 const SignupSchema = z.object({
@@ -27,6 +26,9 @@ export async function POST(request: Request) {
     }
 
     const { email, password, name } = parsed.data;
+
+    // Dynamically import Prisma
+    const { default: prisma } = await import('@/lib/db');
 
     // Check if user already exists
     const existing = await prisma.user.findUnique({ where: { email } });

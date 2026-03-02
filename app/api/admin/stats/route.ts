@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDailyStats, getSummaryStats } from '@/lib/usage-logger';
 import { requireAuth } from '@/lib/auth/helpers';
 import { AdminStatsSchema } from '@/lib/validation/schemas';
-import prisma from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   // Phase 4a: Require authentication
@@ -38,6 +37,7 @@ export async function GET(request: NextRequest) {
     // Phase 4b: Augment with database stats if available
     let dbStats = null;
     try {
+      const { default: prisma } = await import('@/lib/db');
       const since = new Date();
       since.setDate(since.getDate() - days);
 

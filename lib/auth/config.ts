@@ -10,7 +10,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import bcrypt from 'bcryptjs';
-import prisma from '@/lib/db';
 import { logSuccessfulLogin, logFailedLogin } from '@/lib/audit-logger';
 import { isEmailSuperAdmin, promoteToSuperAdmin } from '@/lib/rbac';
 
@@ -28,25 +27,34 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        try {
+          // Dynamically import and get Prisma client only when needed
+          const { getPrisma } = await import('@/lib/db');
+          const prisma = await getPrisma();
 
-        if (!user || !user.password) {
-          throw new Error('Invalid email or password');
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+
+          if (!user || !user.password) {
+            throw new Error('Invalid email or password');
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+
+          if (!isValid) {
+            throw new Error('Invalid email or password');
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+          };
+        } catch (error: any) {
+          console.error('[Auth] Authorization error:', error.message);
+          throw new Error('Authentication failed. Please try again later.');
         }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-
-        if (!isValid) {
-          throw new Error('Invalid email or password');
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
       },
     }),
 
@@ -101,6 +109,8 @@ export const authOptions: NextAuthOptions = {
         } else {
           // Fetch current role from DB
           try {
+            const { default: getPrisma } = await import('@/lib/db');
+            const prisma = await getPrisma();
             const dbUser = await prisma.user.findUnique({
               where: { id: user.id },
               select: { role: true },

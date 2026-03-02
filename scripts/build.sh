@@ -25,6 +25,10 @@ npm run lint || echo "⚠️  Linting completed with warnings"
 echo "🧪 Running test suite..."
 npm test -- --passWithNoTests
 
+# Generate Prisma client
+echo "📋 Generating Prisma client..."
+npx prisma generate
+
 # Type check
 echo "🔍 Type checking..."
 npx tsc --noEmit
