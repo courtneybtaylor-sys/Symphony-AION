@@ -6,10 +6,8 @@
  * Phase 6: Real PDF generation from AEI scores and recommendations
  */
 
-import '@/lib/prisma-init'
 import { NextResponse } from 'next/server';
 import { DownloadRequestSchema } from '@/lib/validation/schemas';
-import prisma from '@/lib/db';
 import { jsPDF } from 'jspdf';
 
 /**
@@ -100,6 +98,7 @@ export async function GET(request: Request) {
     // Phase 4g: Validate token against database
     let auditJob;
     try {
+      const { default: prisma } = await import('@/lib/db');
       auditJob = await prisma.auditJob.findUnique({
         where: { reportToken: token! },
       });
@@ -121,6 +120,7 @@ export async function GET(request: Request) {
 
       // Log download event
       try {
+        const { default: prisma } = await import('@/lib/db');
         await prisma.analyticsEvent.create({
           data: {
             userId: auditJob.userId,
@@ -159,6 +159,7 @@ export async function GET(request: Request) {
           : auditJob.recommendations;
 
         // Fetch upload telemetry for context
+        const { default: prisma } = await import('@/lib/db');
         const upload = await prisma.upload.findUnique({
           where: { id: auditJob.uploadId },
         });

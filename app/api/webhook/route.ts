@@ -6,11 +6,9 @@
  * Task 5: Payload size limits
  */
 
-import '@/lib/prisma-init'
 import { NextResponse } from 'next/server';
 import { StripeEventSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize } from '@/lib/payload-limits';
-import prisma from '@/lib/db';
 import { enqueueAuditJob as enqueueAuditJobBull } from '@/lib/audit-queue';
 import crypto from 'crypto';
 
@@ -100,6 +98,7 @@ export async function POST(request: Request) {
       // Phase 4b: Create audit job in database
       let uploadId: string | undefined;
       try {
+        const { default: prisma } = await import('@/lib/db');
         const upload = await prisma.upload.findUnique({
           where: { hash: telemetryHash },
         });
@@ -136,6 +135,7 @@ export async function POST(request: Request) {
 
       // Log analytics
       try {
+        const { default: prisma } = await import('@/lib/db');
         await prisma.analyticsEvent.create({
           data: {
             userId: userId || null,

@@ -10,7 +10,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import bcrypt from 'bcryptjs';
-import prisma from '@/lib/db';
 import { logSuccessfulLogin, logFailedLogin } from '@/lib/audit-logger';
 import { isEmailSuperAdmin, promoteToSuperAdmin } from '@/lib/rbac';
 
@@ -27,6 +26,9 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
+
+        // Dynamically import prisma only when needed
+        const { default: prisma } = await import('@/lib/db');
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
@@ -101,6 +103,7 @@ export const authOptions: NextAuthOptions = {
         } else {
           // Fetch current role from DB
           try {
+            const { default: prisma } = await import('@/lib/db');
             const dbUser = await prisma.user.findUnique({
               where: { id: user.id },
               select: { role: true },
