@@ -2,6 +2,7 @@
  * NextAuth Configuration
  * Phase 4a: Authentication with credentials provider
  * Task 8: OAuth providers (Google, GitHub) and audit logging
+ * Super-admin support with RBAC
  */
 
 import type { NextAuthOptions } from 'next-auth';
@@ -11,6 +12,7 @@ import GitHubProvider from 'next-auth/providers/github';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
 import { logSuccessfulLogin, logFailedLogin } from '@/lib/audit-logger';
+import { isEmailSuperAdmin, promoteToSuperAdmin } from '@/lib/rbac';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -87,6 +89,27 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+
+        // Check if user should be a super-admin
+        if (isEmailSuperAdmin(user.email || '')) {
+          try {
+            await promoteToSuperAdmin(user.email || '');
+            token.role = 'super_admin';
+          } catch {
+            // Ignore promotion errors
+          }
+        } else {
+          // Fetch current role from DB
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { role: true },
+            });
+            token.role = dbUser?.role || 'user';
+          } catch {
+            token.role = 'user';
+          }
+        }
       }
       if (account) {
         token.provider = account.provider;
@@ -95,8 +118,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string; provider?: string }).id = token.id as string;
-        (session.user as { id?: string; provider?: string }).provider = token.provider as string;
+        (session.user as { id?: string; provider?: string; role?: string }).id = token.id as string;
+        (session.user as { id?: string; provider?: string; role?: string }).provider = token.provider as string;
+        (session.user as { id?: string; provider?: string; role?: string }).role = token.role as string;
       }
       return session;
     },
