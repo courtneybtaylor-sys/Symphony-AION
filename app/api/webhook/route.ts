@@ -98,7 +98,8 @@ export async function POST(request: Request) {
       // Phase 4b: Create audit job in database
       let uploadId: string | undefined;
       try {
-        const { default: prisma } = await import('@/lib/db');
+        const { default: getPrisma } = await import('@/lib/db');
+        const prisma = await getPrisma();
         const upload = await prisma.upload.findUnique({
           where: { hash: telemetryHash },
         });
@@ -135,7 +136,8 @@ export async function POST(request: Request) {
 
       // Log analytics
       try {
-        const { default: prisma } = await import('@/lib/db');
+        const { default: getPrisma } = await import('@/lib/db');
+        const prisma = await getPrisma();
         await prisma.analyticsEvent.create({
           data: {
             userId: userId || null,

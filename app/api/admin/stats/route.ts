@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
     // Phase 4b: Augment with database stats if available
     let dbStats = null;
     try {
-      const { default: prisma } = await import('@/lib/db');
+      const { default: getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       const since = new Date();
       since.setDate(since.getDate() - days);
 

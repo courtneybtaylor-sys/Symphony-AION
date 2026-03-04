@@ -4,8 +4,6 @@
  * Logs all security-relevant events for compliance and monitoring
  */
 
-import prisma from './db'
-
 export type AuditAction =
   | 'login_success'
   | 'login_failure'
@@ -48,6 +46,9 @@ export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
     if (!entry.userId && !['unauthorized_access', 'suspicious_activity'].includes(entry.action)) {
       return
     }
+
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
 
     await prisma.auditLog.create({
       data: {
@@ -200,6 +201,8 @@ export async function logMFAEvent(
  */
 export async function getUserAuditLog(userId: string, limit: number = 50) {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     return await prisma.auditLog.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },

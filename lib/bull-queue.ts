@@ -6,7 +6,6 @@
 
 import Queue, { Job } from 'bull';
 import { redis } from '@/lib/redis';
-import prisma from '@/lib/db';
 import { processAuditJob } from '@/lib/audit-processor';
 
 export interface AuditJobData {
@@ -87,7 +86,10 @@ export function processAuditJobs() {
 
   auditQueue.process(1, async (job: Job<AuditJobData>) => {
     console.log(`[Queue] Processing audit job ${job.id}`);
-    
+
+    const { default: getPrisma } = await import('@/lib/db');
+    const prisma = await getPrisma();
+
     try {
       const { uploadId, userId, telemetryHash } = job.data;
 

@@ -6,7 +6,6 @@
 
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
-import prisma from './db'
 
 /**
  * Generate a new TOTP secret and QR code
@@ -61,6 +60,8 @@ export function verifyTOTP(token: string, secret: string): boolean {
  */
 export async function enableMFA(userId: string, secret: string, backupCodes: string[]): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -83,6 +84,8 @@ export async function enableMFA(userId: string, secret: string, backupCodes: str
  */
 export async function disableMFA(userId: string): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -105,6 +108,8 @@ export async function disableMFA(userId: string): Promise<boolean> {
  */
 export async function isMFAEnabled(userId: string): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { mfaEnabled: true },
@@ -121,6 +126,8 @@ export async function isMFAEnabled(userId: string): Promise<boolean> {
  */
 export async function verifyMFA(userId: string, token: string): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { mfaSecret: true, mfaBackupCodes: true, mfaEnabled: true },
@@ -138,7 +145,7 @@ export async function verifyMFA(userId: string, token: string): Promise<boolean>
     // Try backup codes
     if (user.mfaBackupCodes && user.mfaBackupCodes.includes(token)) {
       // Remove used backup code
-      const updatedCodes = user.mfaBackupCodes.filter((code) => code !== token)
+      const updatedCodes = user.mfaBackupCodes.filter((code: any) => code !== token)
 
       await prisma.user.update({
         where: { id: userId },
@@ -161,6 +168,8 @@ export async function verifyMFA(userId: string, token: string): Promise<boolean>
  */
 export async function getBackupCodesCount(userId: string): Promise<number> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { mfaBackupCodes: true },

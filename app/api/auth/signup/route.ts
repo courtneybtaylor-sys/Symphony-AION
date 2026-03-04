@@ -28,7 +28,8 @@ export async function POST(request: Request) {
     const { email, password, name } = parsed.data;
 
     // Dynamically import Prisma
-    const { default: prisma } = await import('@/lib/db');
+    const { default: getPrisma } = await import('@/lib/db');
+    const prisma = await getPrisma();
 
     // Check if user already exists
     const existing = await prisma.user.findUnique({ where: { email } });

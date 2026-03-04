@@ -3,8 +3,6 @@
  * Admin and super-admin management
  */
 
-import prisma from './db'
-
 export type UserRole = 'user' | 'admin' | 'super_admin'
 
 export const SUPER_ADMINS = [
@@ -17,6 +15,8 @@ export const SUPER_ADMINS = [
  */
 export async function userHasRole(userId: string, role: UserRole): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
@@ -48,6 +48,8 @@ export function isEmailSuperAdmin(email: string): boolean {
  */
 export async function promoteToSuperAdmin(email: string): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const result = await prisma.user.updateMany({
       where: { email: { mode: 'insensitive', equals: email } },
       data: { role: 'super_admin' },
@@ -71,6 +73,8 @@ export async function promoteToSuperAdmin(email: string): Promise<boolean> {
  */
 export async function promoteToAdmin(email: string): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const result = await prisma.user.updateMany({
       where: { email: { mode: 'insensitive', equals: email } },
       data: { role: 'admin' },
@@ -93,6 +97,8 @@ export async function promoteToAdmin(email: string): Promise<boolean> {
  */
 export async function demoteToUser(email: string): Promise<boolean> {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     const result = await prisma.user.updateMany({
       where: { email: { mode: 'insensitive', equals: email } },
       data: { role: 'user' },
@@ -116,6 +122,9 @@ export async function demoteToUser(email: string): Promise<boolean> {
  */
 export async function initializeSuperAdmins(): Promise<void> {
   console.log('[RBAC] Initializing super-admins...')
+
+  const { default: getPrisma } = await import('./db');
+  const prisma = await getPrisma();
 
   for (const email of SUPER_ADMINS) {
     try {
@@ -162,6 +171,8 @@ export async function getAdminUsers(): Promise<
   }>
 > {
   try {
+    const { default: getPrisma } = await import('./db');
+    const prisma = await getPrisma();
     return await prisma.user.findMany({
       where: {
         role: {

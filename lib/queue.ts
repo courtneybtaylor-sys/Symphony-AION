@@ -4,7 +4,6 @@
  * In production, replace with Bull + Redis
  */
 
-import prisma from '@/lib/db';
 import { processAuditJob, type AuditJob } from '@/lib/audit-processor';
 
 export interface QueueJob {
@@ -44,6 +43,8 @@ export async function enqueueAuditJob(data: QueueJob['data']): Promise<string> {
 
   // Update DB status
   try {
+    const { default: getPrisma } = await import('@/lib/db');
+    const prisma = await getPrisma();
     await prisma.auditJob.update({
       where: { uploadId: data.uploadId },
       data: { status: 'queued' },
@@ -64,6 +65,9 @@ export async function enqueueAuditJob(data: QueueJob['data']): Promise<string> {
 async function processQueue() {
   if (processing) return;
   processing = true;
+
+  const { default: getPrisma } = await import('@/lib/db');
+  const prisma = await getPrisma();
 
   while (jobQueue.length > 0) {
     const job = jobQueue.find((j) => j.status === 'queued');

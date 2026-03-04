@@ -13,7 +13,6 @@ import { requireAuth } from '@/lib/auth/helpers';
 import { CheckoutRequestSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize } from '@/lib/payload-limits';
 import { validateUpload } from '@/lib/intake-gate';
-import prisma from '@/lib/db';
 
 export async function POST(request: Request) {
   // Task 5: Check payload size
@@ -47,6 +46,8 @@ export async function POST(request: Request) {
     // Verify upload exists in database
     let upload;
     try {
+      const { default: getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       upload = await prisma.upload.findUnique({
         where: { hash: telemetryHash },
       });
@@ -96,6 +97,8 @@ export async function POST(request: Request) {
 
     // Log analytics
     try {
+      const { default: getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       await prisma.analyticsEvent.create({
         data: {
           userId: auth.user.id,
