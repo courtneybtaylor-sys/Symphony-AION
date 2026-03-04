@@ -25,6 +25,7 @@ export interface AuditJob {
   reportTokenExpiresAt?: string;
   reportFilePath?: string;
   aeiScore?: number;
+  recommendations?: any[];
   totalCostUSD?: number;
   projectedSavingsMonthly?: number;
   runCount?: number;
@@ -78,6 +79,7 @@ export async function processAuditJob(
       reportToken,
       reportTokenExpiresAt: expiresAt,
       aeiScore: aeiScore.overall,
+      recommendations,
       totalCostUSD: runViewModel.costs.total,
       frameworkDetected: (telemetryData as any).framework || 'generic',
       runCount: 1,

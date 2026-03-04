@@ -98,7 +98,8 @@ export async function GET(request: Request) {
     // Phase 4g: Validate token against database
     let auditJob;
     try {
-      const { default: prisma } = await import('@/lib/db');
+      const { default: getPrisma } = await import('@/lib/db');
+      const prisma = await getPrisma();
       auditJob = await prisma.auditJob.findUnique({
         where: { reportToken: token! },
       });
@@ -120,7 +121,8 @@ export async function GET(request: Request) {
 
       // Log download event
       try {
-        const { default: prisma } = await import('@/lib/db');
+        const { default: getPrisma } = await import('@/lib/db');
+        const prisma = await getPrisma();
         await prisma.analyticsEvent.create({
           data: {
             userId: auditJob.userId,
@@ -159,7 +161,8 @@ export async function GET(request: Request) {
           : auditJob.recommendations;
 
         // Fetch upload telemetry for context
-        const { default: prisma } = await import('@/lib/db');
+        const { default: getPrisma } = await import('@/lib/db');
+        const prisma = await getPrisma();
         const upload = await prisma.upload.findUnique({
           where: { id: auditJob.uploadId },
         });
@@ -194,7 +197,7 @@ export async function GET(request: Request) {
       reportBuffer = Buffer.from(generateFallbackPdf(null, null));
     }
 
-    return new Response(reportBuffer, {
+    return new Response(new Uint8Array(reportBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

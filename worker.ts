@@ -6,7 +6,6 @@
  */
 
 import { auditQueue } from './lib/audit-queue'
-import { prisma } from './lib/db'
 import { buildRunViewModel } from './lib/telemetry'
 import { calculateAEI } from './lib/aei-score'
 import { executeRecommendationRules } from './lib/recommendations/rules'
@@ -17,9 +16,20 @@ import crypto from 'crypto'
 
 console.log('🚀 Symphony-AION Worker starting...')
 
+let prismaInstance: any = null;
+
+const getPrismaInstance = async () => {
+  if (!prismaInstance) {
+    const { default: getPrisma } = await import('./lib/db')
+    prismaInstance = await getPrisma()
+  }
+  return prismaInstance
+}
+
 // Process queue jobs (up to 3 concurrent)
 auditQueue.process(3, async (job) => {
   const { uploadId, userId, userEmail, telemetryHash } = job.data
+  const prisma = await getPrismaInstance()
 
   try {
     console.log(
@@ -169,14 +179,18 @@ auditQueue.on('failed', (job, err) => {
 process.on('SIGTERM', async () => {
   console.log('[Worker] SIGTERM received, shutting down gracefully...')
   await auditQueue.close()
-  await prisma.$disconnect()
+  if (prismaInstance) {
+    await prismaInstance.$disconnect()
+  }
   process.exit(0)
 })
 
 process.on('SIGINT', async () => {
   console.log('[Worker] SIGINT received, shutting down gracefully...')
   await auditQueue.close()
-  await prisma.$disconnect()
+  if (prismaInstance) {
+    await prismaInstance.$disconnect()
+  }
   process.exit(0)
 })
 
