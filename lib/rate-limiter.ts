@@ -19,6 +19,8 @@ const LIMITS = {
   '/api/create-checkout': { requests: 5, windowMs: 60_000 },        // 5 per minute
   '/api/validate-upload': { requests: 20, windowMs: 60_000 },       // 20 per minute
   '/api/webhook': { requests: 100, windowMs: 60_000 },              // 100 per minute (webhooks)
+  '/api/free-preview': { requests: 5, windowMs: 24 * 60 * 60_000 }, // 5 per day per IP
+  '/api/check-free-preview': { requests: 60, windowMs: 60_000 },    // 60 per minute (status check)
   default: { requests: 100, windowMs: 60_000 },
 }
 
