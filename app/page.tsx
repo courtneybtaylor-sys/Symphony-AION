@@ -15,14 +15,14 @@ export default function LandingPage() {
   if (!mounted) return null
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="w-full min-h-screen flex flex-col bg-nun text-papyrus">
       {/* Navigation */}
-      <nav className="border-b border-slate-700 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <nav className="border-b border-clay bg-stone/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold">Symphony-AION</div>
+          <div className="text-2xl font-bold text-gold">Symphony-AION</div>
           <Link
             href="/dashboard"
-            className="text-slate-400 hover:text-slate-200 text-sm"
+            className="text-ghost hover:text-papyrus text-sm transition"
           >
             Dashboard
           </Link>
@@ -33,23 +33,23 @@ export default function LandingPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         <div className="max-w-4xl mx-auto text-center space-y-8 mb-12">
           <div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-4">
+            <h1 className="text-5xl md:text-6xl font-bold mb-4 text-papyrus">
               Forensic Audits for AI Workflows
             </h1>
-            <p className="text-xl text-slate-400">
+            <p className="text-xl text-ghost">
               Upload your telemetry. We'll analyze costs, recommend optimizations, and project your ROI.
             </p>
           </div>
 
           {/* Feature Pills */}
           <div className="flex flex-col md:flex-row gap-3 justify-center flex-wrap">
-            <div className="px-4 py-2 rounded-full border border-cyan-400/40 text-cyan-300 text-sm font-medium bg-cyan-400/5">
+            <div className="px-4 py-2 rounded-full border border-clay text-teal-light text-sm font-medium bg-stone">
               ✓ AEI Scoring (0-100)
             </div>
-            <div className="px-4 py-2 rounded-full border border-blue-400/40 text-blue-300 text-sm font-medium bg-blue-400/5">
+            <div className="px-4 py-2 rounded-full border border-clay text-teal-light text-sm font-medium bg-stone">
               ✓ 7-Section PDF Report
             </div>
-            <div className="px-4 py-2 rounded-full border border-green-400/40 text-green-300 text-sm font-medium bg-green-400/5">
+            <div className="px-4 py-2 rounded-full border border-clay text-teal-light text-sm font-medium bg-stone">
               ✓ Dollar-Quantified Savings
             </div>
           </div>
@@ -60,12 +60,12 @@ export default function LandingPage() {
           <div className="space-y-6 text-center">
             <button
               onClick={() => setShowUploader(true)}
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition inline-block"
+              className="px-8 py-4 bg-gold hover:bg-gold-bright text-nun font-semibold rounded-lg transition inline-block"
             >
               Start Your Audit
             </button>
-            <p className="text-slate-400 text-sm">
-              or <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 underline">
+            <p className="text-ghost text-sm">
+              or <Link href="/dashboard" className="text-sand hover:text-papyrus underline transition">
                 view sample audit
               </Link>
             </p>
@@ -76,24 +76,24 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-700 bg-slate-900/50 py-8">
-        <div className="max-w-6xl mx-auto px-6 text-center text-slate-400 text-sm space-y-2">
+      <div className="border-t border-clay bg-stone/50 py-8">
+        <div className="max-w-6xl mx-auto px-6 text-center text-ghost text-sm space-y-2">
           <p>
-            <strong className="text-white">Kheper LLC</strong> | Founded by Courtney B. Taylor
+            <strong className="text-papyrus">Kheper LLC</strong> | Founded by Courtney B. Taylor
           </p>
           <p>
             Questions? Email{' '}
-            <a href="mailto:hello@khepellc.com" className="text-blue-400 hover:text-blue-300">
+            <a href="mailto:hello@khepellc.com" className="text-gold hover:text-gold-bright transition">
               hello@khepellc.com
             </a>
             {' '}| Phone:{' '}
-            <a href="tel:+18165276799" className="text-blue-400 hover:text-blue-300">
+            <a href="tel:+18165276799" className="text-gold hover:text-gold-bright transition">
               +1(816) 527-6799
             </a>
           </p>
           <p>
             Visit us at{' '}
-            <a href="https://khepellc.com" className="text-blue-400 hover:text-blue-300">
+            <a href="https://khepellc.com" className="text-gold hover:text-gold-bright transition">
               khepellc.com
             </a>
           </p>

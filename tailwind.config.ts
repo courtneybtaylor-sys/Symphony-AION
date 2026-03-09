@@ -24,6 +24,31 @@ const config = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        /* Sovereign Stack palette */
+        gold: {
+          bright: '#E8B84B',
+          DEFAULT: '#C8973A',
+          deep: '#7A5A20',
+        },
+        ochre: '#C4832A',
+        lapis: {
+          DEFAULT: '#1B3A6B',
+          light: '#2D5AA8',
+        },
+        teal: {
+          DEFAULT: '#1E6A5E',
+          light: '#2DAA94',
+        },
+        sage: {
+          DEFAULT: '#2D6B4A',
+          light: '#4A9E72',
+        },
+        papyrus: '#F5EDD0',
+        sand: '#F0D890',
+        nun: '#080604',
+        nile: '#0D0A07',
+        stone: '#1A1208',
+        clay: '#2E1F0A',
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', 'monospace'],

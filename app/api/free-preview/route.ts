@@ -134,7 +134,8 @@ async function handler(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { grade } = classifyAEI(aeiScore);
+  const classification = classifyAEI(aeiScore);
+  const grade = classification.threshold.grade;
 
   // ── Persist record ────────────────────────────────────────────────────────
   const ip =

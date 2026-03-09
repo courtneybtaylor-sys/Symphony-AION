@@ -4,22 +4,61 @@
 
 @layer base {
   :root {
-    --background: 2 2% 4%;
-    --foreground: 0 0% 95%;
-    --primary: 0 0% 7%;
-    --primary-foreground: 45 93% 51%;
-    --secondary: 186 100% 46%;
-    --secondary-foreground: 0 0% 7%;
-    --accent: 45 93% 51%;
-    --accent-foreground: 0 0% 7%;
-    --muted: 0 0% 35%;
-    --muted-foreground: 0 0% 65%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 15%;
-    --input: 0 0% 12%;
-    --ring: 45 93% 51%;
-    --radius: 0.5rem;
+    /* Backgrounds — The Void */
+    --background:        8 4 4;        /* #080604 --nun */
+    --card:              13 10 7;       /* #0D0A07 --nile */
+    --popover:           13 10 7;
+    --sidebar:           26 18 8;      /* #1A1208 --stone */
+    --border:            46 31 10;     /* #2E1F0A --clay */
+    --input:             46 31 10;
+    /* Foregrounds — Papyrus */
+    --foreground:        245 237 208;  /* #F5EDD0 --papyrus */
+    --card-foreground:   245 237 208;
+    --popover-foreground:245 237 208;
+    --muted:             46 31 10;
+    --muted-foreground:  184 181 174;  /* #B8B5AE --ghost */
+    /* Primary — Gold */
+    --primary:           200 151 58;   /* #C8973A --gold */
+    --primary-foreground:8 4 4;        /* --nun on gold */
+    /* Secondary — Stone */
+    --secondary:         26 18 8;      /* #1A1208 --stone */
+    --secondary-foreground:240 216 144;/* #F0D890 --sand */
+    /* Accent — Gold Bright */
+    --accent:            232 184 75;   /* #E8B84B --gold-bright */
+    --accent-foreground: 8 4 4;
+    /* Destructive — Red */
+    --destructive:       107 45 45;    /* #6B2D2D --red */
+    --destructive-foreground:245 237 208;
+    /* Ring */
+    --ring:              200 151 58;   /* --gold */
+    /* Radius */
+    --radius: 0.25rem;
+  }
+
+  /* Extended Sovereign Stack palette */
+  :root {
+    --gold-bright:   #E8B84B;
+    --gold:          #C8973A;
+    --gold-deep:     #7A5A20;
+    --ochre:         #C4832A;
+    --amber-light:   #D4922A;
+    --lapis:         #1B3A6B;
+    --lapis-light:   #2D5AA8;
+    --teal:          #1E6A5E;
+    --teal-light:    #2DAA94;
+    --sage:          #2D6B4A;
+    --sage-light:    #4A9E72;
+    --terra:         #8B3A1A;
+    --red-light:     #C44444;
+    --papyrus:       #F5EDD0;
+    --sand:          #F0D890;
+    --ghost:         #B8B5AE;
+    --mist:          #8A8A96;
+    --fog:           #56565E;
+    --nun:           #080604;
+    --nile:          #0D0A07;
+    --stone:         #1A1208;
+    --clay:          #2E1F0A;
   }
 
   body {
