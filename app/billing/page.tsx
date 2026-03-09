@@ -16,20 +16,20 @@ export default function Billing() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className={metricCard.base}>
             <div className={metricCard.title}>Current Plan</div>
-            <div className={metricCard.value}>Free Trial</div>
-            <div className={metricCard.subtitle}>Unlimited API calls</div>
+            <div className={metricCard.value}>Founding Partner</div>
+            <div className={metricCard.subtitle}>Premium features included</div>
           </div>
 
           <div className={metricCard.base}>
-            <div className={metricCard.title}>This Month Spend</div>
-            <div className={metricCard.value}>$0.00</div>
-            <div className={metricCard.subtitle}>Demo mode - no charges</div>
+            <div className={metricCard.title}>This Month</div>
+            <div className={metricCard.value}>Contact for pricing</div>
+            <div className={metricCard.subtitle}>Custom plan available</div>
           </div>
 
           <div className={metricCard.base}>
             <div className={metricCard.title}>Billing Cycle</div>
-            <div className={metricCard.value}>Feb 1-28</div>
-            <div className={metricCard.subtitle}>Next invoice: Mar 1</div>
+            <div className={metricCard.value}>Active</div>
+            <div className={metricCard.subtitle}>Monthly recurring</div>
           </div>
         </div>
 
@@ -76,8 +76,7 @@ export default function Billing() {
               <label className="block text-sm text-muted-foreground mb-1">Account Email</label>
               <input
                 type="email"
-                value="demo@symphony-aion.dev"
-                disabled
+                placeholder="your@email.com"
                 className="w-full px-3 py-2 bg-primary/20 border border-accent/20 rounded text-foreground font-mono text-sm"
               />
             </div>
@@ -85,8 +84,7 @@ export default function Billing() {
               <label className="block text-sm text-muted-foreground mb-1">Billing Address</label>
               <input
                 type="text"
-                value="Demo Environment (No Billing)"
-                disabled
+                placeholder="Enter billing address"
                 className="w-full px-3 py-2 bg-primary/20 border border-accent/20 rounded text-foreground font-mono text-sm"
               />
             </div>

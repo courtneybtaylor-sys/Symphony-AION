@@ -29,7 +29,25 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const body = await request.json();
+    let body: any;
+    const contentType = request.headers.get('content-type') || '';
+
+    // Handle both JSON and FormData uploads
+    if (contentType.includes('application/json')) {
+      body = await request.json();
+    } else if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const telemetryField = formData.get('telemetry');
+      if (typeof telemetryField === 'string') {
+        body = { telemetry: JSON.parse(telemetryField) };
+      } else if (telemetryField instanceof File) {
+        body = { telemetry: JSON.parse(await telemetryField.text()) };
+      } else {
+        throw new Error('Invalid telemetry field in FormData');
+      }
+    } else {
+      body = await request.json();
+    }
 
     // Phase 4e: Validate input
     const parsed = TelemetryUploadSchema.safeParse(body);

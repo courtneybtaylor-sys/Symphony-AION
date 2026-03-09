@@ -85,6 +85,13 @@ export default function Dashboard() {
           </div>
         )}
 
+        {!loading && !data && !error && (
+          <div className="mb-6 p-6 bg-slate-900/40 border border-slate-700/50 rounded-lg text-center">
+            <p className="text-slate-300 mb-2">No audit runs yet.</p>
+            <p className="text-slate-400 text-sm">Upload telemetry to get started.</p>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex gap-1 mb-6 overflow-x-auto border-b border-accent/20 pb-0">
           {tabs.map((tab) => (
