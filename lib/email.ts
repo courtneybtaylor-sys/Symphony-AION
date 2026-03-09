@@ -151,7 +151,8 @@ function generateAuditReportHTML(params: {
 export async function sendReportEmail(params: SendReportEmailParams): Promise<void> {
   const { to, jobId, reportToken, aeiScore, grade, projectedSavingsMonthly, frameworkDetected, expiresAt } = params
 
-  const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/download-report?token=${reportToken}`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://v0-symphony-aion-nbct159el-the-ai-council.vercel.app'
+  const downloadUrl = `${appUrl}/api/download-report?token=${reportToken}`
   const expiresDate = new Date(expiresAt).toLocaleString()
 
   const emailHtml = generateAuditReportHTML({
@@ -186,25 +187,37 @@ Questions? Email: hello@symphony-aion.com
     // Production: Send via Resend
     try {
       await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'audits@symphony-aion.com',
+        from: 'Symphony-AION <reports@symphony-aion.com>',
         to,
         subject: `Your Symphony-AION Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`,
         html: emailHtml,
         text: emailText,
+        replyTo: 'hello@symphony-aion.com',
       })
       console.log(`[Email] ✓ Sent audit report to ${to} (job ${jobId})`)
     } catch (error) {
       console.warn(`[Email] Failed to send via Resend: ${error instanceof Error ? error.message : String(error)}`)
       console.log(`[Email] Fallback: Logging email for ${to}`)
+      logEmailToConsole({ to, jobId, grade, aeiScore, downloadUrl, expiresDate })
     }
   } else {
     // Development/Test: Log to console
-    console.log(`[Email] Sending audit report to ${to}`)
-    console.log(`[Email] Job ID: ${jobId}`)
-    console.log(`[Email] Subject: Your Symphony-AION Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`)
-    console.log(`[Email] Download URL: ${downloadUrl}`)
-    console.log(`[Email] Expires: ${expiresDate}`)
+    logEmailToConsole({ to, jobId, grade, aeiScore, downloadUrl, expiresDate })
   }
+}
+
+/**
+ * Log email to console when Resend is not available
+ */
+function logEmailToConsole(params: { to: string; jobId: string; grade: string; aeiScore: number; downloadUrl: string; expiresDate: string }): void {
+  const { to, jobId, grade, aeiScore, downloadUrl, expiresDate } = params
+  console.log(`[Email] Sending audit report to ${to}`)
+  console.log(`[Email] Job ID: ${jobId}`)
+  console.log(`[Email] Subject: Your Symphony-AION Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`)
+  console.log(`[Email] From: Symphony-AION <reports@symphony-aion.com>`)
+  console.log(`[Email] Reply-To: hello@symphony-aion.com`)
+  console.log(`[Email] Download URL: ${downloadUrl}`)
+  console.log(`[Email] Expires: ${expiresDate}`)
 }
 
 /**
