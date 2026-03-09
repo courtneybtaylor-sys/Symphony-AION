@@ -267,6 +267,13 @@ export default function AuditUploader() {
             </div>
           </div>
 
+          {/* Free Preview Badge */}
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gold bg-stone text-gold text-sm font-medium">
+              <span>🎁</span> First preview free — one per email
+            </div>
+          </div>
+
           <div className="text-sm text-slate-400 space-y-2 bg-slate-900/50 rounded p-4">
             <p className="font-semibold text-white">What we analyze:</p>
             <ul className="space-y-1">
@@ -379,15 +386,15 @@ export default function AuditUploader() {
               title={previewClaimed ? 'Free preview already claimed' : undefined}
               className={`px-6 py-3 rounded-lg font-medium transition ${
                 previewClaimed
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                  : 'bg-slate-700 hover:bg-slate-600 text-white'
+                  ? 'bg-clay text-muted-foreground cursor-not-allowed'
+                  : 'bg-stone hover:bg-clay text-papyrus border border-gold'
               }`}
             >
               {previewClaimed ? 'Preview Claimed' : 'Get Free Preview'}
             </button>
             <button
               onClick={handleFullAudit}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+              className="px-6 py-3 bg-gold hover:bg-gold-bright text-nun rounded-lg font-medium transition"
             >
               Purchase Full Audit ($750)
             </button>
@@ -429,20 +436,55 @@ export default function AuditUploader() {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+          <div className="bg-stone border border-clay rounded-lg p-6">
             <div className="text-slate-400 text-sm mb-2">Overall Grade</div>
-            <div className="text-3xl font-bold text-white mb-4">{state.previewData.grade}</div>
+            <div className="text-3xl font-bold text-gold mb-4">{state.previewData.grade}</div>
             <div className="text-slate-400 text-sm mb-1">Estimated Monthly Savings</div>
-            <div className="text-2xl font-bold text-green-400">${state.previewData.estimatedMonthlySavings}</div>
+            <div className="text-2xl font-bold text-teal-light">${state.previewData.estimatedMonthlySavings}</div>
           </div>
 
-          <p className="text-sm text-slate-400 text-center">
-            Preview sent to: <span className="text-white font-mono">{state.email}</span>
+          {/* Key Findings */}
+          <div className="bg-stone border border-clay rounded-lg p-6 space-y-3">
+            <h4 className="font-semibold text-papyrus">Key Findings:</h4>
+            <ul className="space-y-2 text-sm text-ghost">
+              {state.previewData.aei >= 70 && (
+                <li className="flex items-start gap-2">
+                  <span className="text-teal-light">✓</span>
+                  <span>Good efficiency baseline — your model usage is relatively optimized</span>
+                </li>
+              )}
+              {state.previewData.aei < 70 && (
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-light">⚠</span>
+                  <span>Optimization opportunities identified — detailed audit reveals specific savings</span>
+                </li>
+              )}
+              {state.previewData.gei > 20 && (
+                <li className="flex items-start gap-2">
+                  <span className="text-amber-light">⚠</span>
+                  <span>Governance exposure detected — consider cost controls and monitoring</span>
+                </li>
+              )}
+              {state.previewData.gei <= 20 && (
+                <li className="flex items-start gap-2">
+                  <span className="text-teal-light">✓</span>
+                  <span>Governance aligned — good cost awareness and control measures in place</span>
+                </li>
+              )}
+              <li className="flex items-start gap-2">
+                <span className="text-gold">→</span>
+                <span>Full audit includes detailed recommendations and ROI projections for each fix</span>
+              </li>
+            </ul>
+          </div>
+
+          <p className="text-sm text-ghost text-center">
+            Preview sent to: <span className="text-papyrus font-mono">{state.email}</span>
           </p>
 
           <button
             onClick={handleFullAudit}
-            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+            className="w-full px-6 py-3 bg-gold hover:bg-gold-bright text-nun rounded-lg font-medium transition"
           >
             Upgrade to Full Audit ($750)
           </button>

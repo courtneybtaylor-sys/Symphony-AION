@@ -8,6 +8,7 @@ import { buildRunViewModel } from './telemetry';
 import { calculateAEI } from './aei-score';
 import { generateRecommendations, getTotalProjectedSavings } from './recommendations';
 import { EventKind } from './types';
+import { normalizeFrameworkTelemetry, detectFramework } from './framework-adapters';
 
 /**
  * Qualification thresholds — intentionally LOW for launch
@@ -77,11 +78,12 @@ export function validateUpload(telemetry: unknown): IntakeGateResult {
   }
 
   try {
-    // Parse as Run type
-    const run = telemetry as any;
+    // Normalize telemetry from any framework to canonical format
+    const detection = detectFramework(telemetry);
+    const normalizedRun = normalizeFrameworkTelemetry(telemetry);
 
     // Build RunViewModel
-    const viewModel = buildRunViewModel(run);
+    const viewModel = buildRunViewModel(normalizedRun);
 
     // Extract data for summary
     const runCount = 1; // Single upload = 1 run
@@ -89,8 +91,8 @@ export function validateUpload(telemetry: unknown): IntakeGateResult {
       (viewModel.events.byKind[EventKind.TOKEN_COUNT] || 0);
     const totalCostUSD = viewModel.costs.total;
     const totalTokens = viewModel.tokens.total;
-    // Framework detection: check raw metadata or default to generic
-    const frameworkDetected = (run as any).framework || 'generic';
+    // Framework detection: use detected framework from auto-detection
+    const frameworkDetected = detection.framework.charAt(0).toUpperCase() + detection.framework.slice(1);
     const modelsDetected = viewModel.costs.byModel.map((m) => m.model);
 
     // Check thresholds
