@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { PRICING } from '@/lib/stripe';
+import { PRICING, getStripeClient, AUDIT_PRICE_USD } from '@/lib/stripe';
 import { requireAuth } from '@/lib/auth/helpers';
 import { CheckoutRequestSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize } from '@/lib/payload-limits';
@@ -83,34 +83,68 @@ export async function POST(request: Request) {
       estimatedSavings: `${runSummary?.estimatedSavingsRangeLow}-${runSummary?.estimatedSavingsRangeHigh}`,
     };
 
-    // In test mode, return a mock checkout session
-    // In production, call: const session = await stripe.checkout.sessions.create({...})
-    const mockSession = {
-      id: `cs_test_${Math.random().toString(36).substring(2, 11)}`,
-      client_secret: `cs_test_secret_${Math.random().toString(36).substring(2, 20)}`,
-      payment_intent: `pi_test_${Math.random().toString(36).substring(2, 11)}`,
-      url: `https://checkout.stripe.com/pay/${Math.random().toString(36).substring(2, 11)}`,
-      status: 'open',
-      metadata,
-      amount: PRICING.PROFESSIONAL.amount,
-    };
-
-    // Log analytics
-    try {
-      const { default: getPrisma } = await import('@/lib/db');
-      const prisma = await getPrisma();
-      await prisma.analyticsEvent.create({
-        data: {
-          userId: auth.user.id,
-          eventType: 'checkout_started',
-          metadata: JSON.stringify({ telemetryHash, sessionId: mockSession.id }),
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
+      return NextResponse.json(
+        {
+          error: 'Stripe not configured',
+          message: 'Contact hello@symphony-aion.com to complete purchase',
         },
-      });
-    } catch {
-      // Ignore analytics errors
+        { status: 503 }
+      );
     }
 
-    return NextResponse.json(mockSession);
+    // Create Stripe checkout session
+    try {
+      const stripe = getStripeClient();
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://symphony-aion.vercel.app';
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Symphony-AION Forensic Audit',
+                description: 'Comprehensive AI workflow analysis and optimization report',
+                images: [],
+              },
+              unit_amount: AUDIT_PRICE_USD,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/checkout?canceled=true`,
+        customer_email: auth.user.email,
+        metadata,
+      });
+
+      // Log analytics
+      try {
+        const { default: getPrisma } = await import('@/lib/db');
+        const prisma = await getPrisma();
+        await prisma.analyticsEvent.create({
+          data: {
+            userId: auth.user.id,
+            eventType: 'checkout_started',
+            metadata: JSON.stringify({ telemetryHash, sessionId: session.id }),
+          },
+        });
+      } catch {
+        // Ignore analytics errors
+      }
+
+      return NextResponse.json({ url: session.url, sessionId: session.id });
+    } catch (stripeError) {
+      const message = stripeError instanceof Error ? stripeError.message : 'Stripe error';
+      return NextResponse.json(
+        { error: 'Failed to create Stripe session', details: message },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
