@@ -14,16 +14,16 @@ export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-primary border-r border-border flex flex-col h-full">
+    <aside className="w-64 bg-nile border-r border-clay flex flex-col h-full">
       {/* Logo Section */}
-      <div className="p-6 border-b border-border">
+      <div className="p-6 border-b border-clay">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-            <span className="text-accent-foreground font-mono font-bold text-lg">A</span>
+          <div className="w-10 h-10 bg-gold rounded-lg flex items-center justify-center">
+            <span className="text-nun font-mono font-bold text-lg">A</span>
           </div>
           <div>
-            <h1 className="text-accent font-mono font-bold">AION</h1>
-            <p className="text-xs text-muted-foreground">v{process.env.NEXT_PUBLIC_AION_VERSION}</p>
+            <h1 className="text-gold font-mono font-bold">AION</h1>
+            <p className="text-xs text-ghost">v{process.env.NEXT_PUBLIC_AION_VERSION}</p>
           </div>
         </div>
       </div>
@@ -37,7 +37,9 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+              className={`sidebar-nav-item ${isActive ? 'active' : ''} ${
+                isActive ? 'bg-stone text-gold border-b border-gold' : 'text-ghost hover:text-papyrus'
+              }`}
             >
               <Icon className="w-5 h-5" />
               <span className="font-mono font-medium">{item.label}</span>
@@ -47,8 +49,8 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border">
-        <p className="text-xs text-muted-foreground text-center">
+      <div className="p-4 border-t border-clay">
+        <p className="text-xs text-ghost text-center">
           Symphony AION {process.env.NEXT_PUBLIC_AION_VERSION}
         </p>
       </div>
