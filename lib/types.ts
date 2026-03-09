@@ -23,6 +23,8 @@ export enum EventKind {
 
   // Governance and control
   GOVERNANCE = 'governance',
+  RATE_LIMIT = 'RATE_LIMIT',
+  AUTH_FAILURE = 'AUTH_FAILURE',
   RETRY = 'retry',
 
   // Analysis events

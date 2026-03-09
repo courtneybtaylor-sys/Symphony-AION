@@ -32,14 +32,14 @@ export interface GEIScore {
  */
 const COST_GOVERNANCE_EVENTS = [
   EventKind.GOVERNANCE,
-  EventKind.RETRY,
+  EventKind.RATE_LIMIT,
 ];
 
 /**
  * Authority-related governance events
  */
 const AUTHORITY_GOVERNANCE_EVENTS = [
-  EventKind.VALIDATION_FAILED,
+  EventKind.AUTH_FAILURE,
 ];
 
 /**
@@ -61,7 +61,7 @@ function calculateCostSubScore(
     return sum + (eventsByKind[event] || 0);
   }, 0);
 
-  const rateLimitViolations = eventsByKind[EventKind.RETRY] || 0;
+  const rateLimitViolations = eventsByKind[EventKind.RATE_LIMIT] || 0;
   const governanceEvents = eventsByKind[EventKind.GOVERNANCE] || 0;
 
   // If no governance events detected, cost controls may be missing
@@ -88,7 +88,7 @@ function calculateAuthoritySubScore(
   eventsByKind: Record<string, number>,
   riskFlags: string[]
 ): number {
-  const authFailures = eventsByKind[EventKind.VALIDATION_FAILED] || 0;
+  const authFailures = eventsByKind[EventKind.AUTH_FAILURE] || 0;
   const totalGovernanceEvents = Object.values(eventsByKind).reduce((a, b) => a + b, 0);
 
   // If no auth failures and governance events, good compliance
@@ -168,7 +168,7 @@ function generateInsights(
 
   // Insight 2: Event-based finding
   const governanceCount = data.events.byKind[EventKind.GOVERNANCE] || 0;
-  const authCount = data.events.byKind[EventKind.VALIDATION_FAILED] || 0;
+  const authCount = data.events.byKind[EventKind.AUTH_FAILURE] || 0;
   const validationCount = data.events.byKind[EventKind.VALIDATION_FAILED] || 0;
 
   if (governanceCount + authCount + validationCount === 0) {
