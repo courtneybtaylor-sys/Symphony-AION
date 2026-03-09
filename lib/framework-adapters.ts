@@ -4,7 +4,7 @@
  * Supports: LangChain, LlamaIndex, AutoGen, Haystack, and generic JSON
  */
 
-import { Run, Event, EventKind } from './types';
+import { Run, Event, EventKind, Status } from './types';
 
 export type FrameworkType = 'langchain' | 'llamaindex' | 'autogen' | 'haystack' | 'generic';
 
@@ -94,11 +94,14 @@ function adaptLangChain(telemetry: any): Run {
 
   return {
     id: run.id || 'run-1',
-    framework: 'LangChain',
-    startTime,
-    endTime: startTime + 1000,
-    status: run.error ? 'FAILED' : 'COMPLETED',
+    name: 'LangChain Telemetry',
+    status: run.error ? Status.FAILED : Status.COMPLETED,
+    startedAt: startTime,
+    completedAt: startTime + 1000,
+    durationMs: 1000,
     events,
+    steps: [],
+    metadata: { tags: ['langchain'] },
   };
 }
 
@@ -134,11 +137,14 @@ function adaptLlamaIndex(telemetry: any): Run {
 
   return {
     id: run.id || 'run-1',
-    framework: 'LlamaIndex',
-    startTime,
-    endTime: startTime + 1000,
-    status: 'COMPLETED',
+    name: 'LlamaIndex Telemetry',
+    status: Status.COMPLETED,
+    startedAt: startTime,
+    completedAt: startTime + 1000,
+    durationMs: 1000,
     events,
+    steps: [],
+    metadata: { tags: ['llamaindex'] },
   };
 }
 
@@ -181,11 +187,14 @@ function adaptAutoGen(telemetry: any): Run {
 
   return {
     id: telemetry.run_id || 'run-1',
-    framework: 'AutoGen',
-    startTime,
-    endTime: startTime + (telemetry.elapsed_time_ms || 1000),
-    status: 'COMPLETED',
+    name: 'AutoGen Telemetry',
+    status: Status.COMPLETED,
+    startedAt: startTime,
+    completedAt: startTime + (telemetry.elapsed_time_ms || 1000),
+    durationMs: telemetry.elapsed_time_ms || 1000,
     events,
+    steps: [],
+    metadata: { tags: ['autogen'] },
   };
 }
 
@@ -222,11 +231,14 @@ function adaptHaystack(telemetry: any): Run {
 
   return {
     id: run.id || 'run-1',
-    framework: 'Haystack',
-    startTime,
-    endTime: startTime + 1000,
-    status: run.error ? 'FAILED' : 'COMPLETED',
+    name: 'Haystack Telemetry',
+    status: run.error ? Status.FAILED : Status.COMPLETED,
+    startedAt: startTime,
+    completedAt: startTime + 1000,
+    durationMs: 1000,
     events,
+    steps: [],
+    metadata: { tags: ['haystack'] },
   };
 }
 

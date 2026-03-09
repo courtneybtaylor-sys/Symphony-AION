@@ -91,8 +91,8 @@ export function validateUpload(telemetry: unknown): IntakeGateResult {
       (viewModel.events.byKind[EventKind.TOKEN_COUNT] || 0);
     const totalCostUSD = viewModel.costs.total;
     const totalTokens = viewModel.tokens.total;
-    // Framework detection: use normalized result or check raw metadata
-    const frameworkDetected = normalizedRun.framework || detection.framework || 'generic';
+    // Framework detection: use detected framework from auto-detection
+    const frameworkDetected = detection.framework.charAt(0).toUpperCase() + detection.framework.slice(1);
     const modelsDetected = viewModel.costs.byModel.map((m) => m.model);
 
     // Check thresholds
