@@ -98,3 +98,20 @@ model AuditLog {
   @@index([action, createdAt])
   @@index([result])
 }
+
+model FreePreviewRequest {
+  id                String   @id @default(cuid())
+  email             String   @unique                          // One free preview per email address
+  telemetryHash     String
+  aei               Float?
+  gei               Float?
+  shi               Float?
+  grade             String?
+  consentMarketing  Boolean  @default(false)
+  ipAddress         String?
+  userAgent         String?  @db.VarChar(500)
+  createdAt         DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+}

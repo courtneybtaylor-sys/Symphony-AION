@@ -1,8 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import EmailCaptureModal from './EmailCaptureModal';
+
+const LS_KEY = 'free_preview_claimed';
+
+function isClaimed(): boolean {
+  if (typeof document === 'undefined') return false;
+  // Check cookie (set by server) or localStorage (set by client after success)
+  const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('free_preview_claimed=true'));
+  const hasLS = localStorage.getItem(LS_KEY) === 'true';
+  return hasCookie || hasLS;
+}
 
 interface UploadState {
   stage: 'idle' | 'uploading' | 'validating' | 'qualified' | 'email-capture' | 'preview' | 'not-qualified' | 'error';
@@ -40,6 +50,12 @@ export default function AuditUploader() {
   const router = useRouter();
   const [state, setState] = useState<UploadState>({ stage: 'idle', file: null });
   const [dragActive, setDragActive] = useState(false);
+  const [previewClaimed, setPreviewClaimed] = useState(false);
+
+  // Hydrate claim status from cookie/localStorage on mount
+  useEffect(() => {
+    setPreviewClaimed(isClaimed());
+  }, []);
 
   const handleUpload = useCallback(
     async (file: File) => {
@@ -176,6 +192,18 @@ export default function AuditUploader() {
           }),
         });
 
+        if (response.status === 409) {
+          // Email already claimed – show message and redirect to checkout
+          setPreviewClaimed(true);
+          localStorage.setItem(LS_KEY, 'true');
+          setState(prev => ({
+            ...prev,
+            stage: 'qualified',
+            error: 'This email has already claimed a free preview. Upgrade to the full audit for detailed recommendations.',
+          }));
+          return;
+        }
+
         if (!response.ok) {
           setState(prev => ({
             ...prev,
@@ -186,6 +214,9 @@ export default function AuditUploader() {
         }
 
         const preview = await response.json();
+        // Mark as claimed in localStorage (cookie is set by server)
+        localStorage.setItem(LS_KEY, 'true');
+        setPreviewClaimed(true);
         setState(prev => ({
           ...prev,
           stage: 'preview',
@@ -334,12 +365,25 @@ export default function AuditUploader() {
             </div>
           </div>
 
+          {/* Already-claimed notice */}
+          {(previewClaimed || state.error) && (
+            <div className="bg-amber-900/20 border border-amber-700/40 rounded-lg p-3 text-sm text-amber-300">
+              {state.error || 'You have already claimed your free preview.'}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <button
               onClick={handleFreePreview}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+              disabled={previewClaimed}
+              title={previewClaimed ? 'Free preview already claimed' : undefined}
+              className={`px-6 py-3 rounded-lg font-medium transition ${
+                previewClaimed
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : 'bg-slate-700 hover:bg-slate-600 text-white'
+              }`}
             >
-              Get Free Preview
+              {previewClaimed ? 'Preview Claimed' : 'Get Free Preview'}
             </button>
             <button
               onClick={handleFullAudit}
