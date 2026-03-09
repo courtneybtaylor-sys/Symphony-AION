@@ -165,15 +165,26 @@ function calculateModelMisallocation(
   inputTokens: number,
   riskFlags: string[]
 ): number {
-  // Heuristic: if using premium models (Opus, GPT-4) on low token counts, likely misallocation
-  const premiumModels = ['gpt-4', 'gpt-4-turbo', 'claude-3-opus', 'claude-opus'];
+  // Heuristic: if using premium models (Opus, GPT-4 exact) on low token counts, likely misallocation
+  // Use exact matching to avoid false positives (gpt-4o-mini is not gpt-4)
+  const isPremiumModel = (model: string): boolean => {
+    const normalized = model.toLowerCase();
+    return (
+      normalized === 'gpt-4' ||
+      normalized === 'gpt-4-turbo' ||
+      normalized === 'gpt-4-turbo-preview' ||
+      normalized === 'claude-3-opus' ||
+      normalized === 'claude-opus' ||
+      normalized.startsWith('gpt-4 ') || // gpt-4 variants
+      normalized.startsWith('claude-opus-')
+    );
+  };
+
   const modelList = Array.from(modelsByCount.keys());
 
   if (modelList.length === 0) return 0;
 
-  const hasPremiumOnly = modelList.every(model =>
-    premiumModels.some(pm => model.toLowerCase().includes(pm.toLowerCase()))
-  );
+  const hasPremiumOnly = modelList.every(model => isPremiumModel(model));
 
   let penalty = 0;
 
