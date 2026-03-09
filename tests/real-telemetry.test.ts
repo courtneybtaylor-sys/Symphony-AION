@@ -244,22 +244,22 @@ describe('Real Telemetry Validation', () => {
         const viewModel = buildRunViewModel(run);
         const aei = calculateAEI(viewModel);
 
-        // Components may be undefined if data is unavailable
-        if (aei.components.cost !== undefined) {
-          expect(aei.components.cost).toBeGreaterThanOrEqual(0);
-          expect(aei.components.cost).toBeLessThanOrEqual(100);
+        // Components validation against canonical schema
+        if (aei.components.loopTax !== undefined) {
+          expect(aei.components.loopTax).toBeGreaterThanOrEqual(0);
+          expect(aei.components.loopTax).toBeLessThanOrEqual(100);
         }
-        if (aei.components.token !== undefined) {
-          expect(aei.components.token).toBeGreaterThanOrEqual(0);
-          expect(aei.components.token).toBeLessThanOrEqual(100);
+        if (aei.components.frameworkOverhead !== undefined) {
+          expect(aei.components.frameworkOverhead).toBeGreaterThanOrEqual(0);
+          expect(aei.components.frameworkOverhead).toBeLessThanOrEqual(100);
         }
-        if (aei.components.latency !== undefined) {
-          expect(aei.components.latency).toBeGreaterThanOrEqual(0);
-          expect(aei.components.latency).toBeLessThanOrEqual(100);
+        if (aei.components.modelMisallocation !== undefined) {
+          expect(aei.components.modelMisallocation).toBeGreaterThanOrEqual(0);
+          expect(aei.components.modelMisallocation).toBeLessThanOrEqual(100);
         }
-        if (aei.components.reliability !== undefined) {
-          expect(aei.components.reliability).toBeGreaterThanOrEqual(0);
-          expect(aei.components.reliability).toBeLessThanOrEqual(100);
+        if (aei.components.driftScore !== undefined) {
+          expect(aei.components.driftScore).toBeGreaterThanOrEqual(0);
+          expect(aei.components.driftScore).toBeLessThanOrEqual(100);
         }
       });
     });
@@ -293,10 +293,10 @@ describe('Real Telemetry Validation', () => {
           aei: aei.overall,
           grade: aei.grade,
           cost: viewModel.costs.total,
-          costComponent: aei.components.costEfficiency,
-          tokenComponent: aei.components.tokenEfficiency,
-          latencyComponent: aei.components.latencyScore,
-          reliabilityComponent: aei.components.reliabilityScore,
+          costComponent: aei.components.loopTax,
+          tokenComponent: aei.components.frameworkOverhead,
+          latencyComponent: aei.components.modelMisallocation,
+          reliabilityComponent: aei.components.driftScore,
           recommendations: recommendations.length,
           criticalRecs: recommendations.filter((r) => r.priority === 'critical').length,
         });
