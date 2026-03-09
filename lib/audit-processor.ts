@@ -9,6 +9,17 @@ import { generateRecommendations } from './recommendations';
 import { generateAuditReport } from './pdf-report';
 import crypto from 'crypto';
 
+// Vercel Blob is only available on server side
+let put: ((path: string, data: any, options: any) => Promise<{ url: string }>) | null = null;
+if (typeof fetch !== 'undefined') {
+  try {
+    const blob = require('@vercel/blob');
+    put = blob.put;
+  } catch {
+    // @vercel/blob not available in test environment
+  }
+}
+
 export interface AuditJob {
   id: string;
   telemetryHash: string;
@@ -24,6 +35,7 @@ export interface AuditJob {
   reportToken?: string;
   reportTokenExpiresAt?: string;
   reportFilePath?: string;
+  reportBlobUrl?: string;
   aeiScore?: number;
   recommendations?: any[];
   totalCostUSD?: number;
@@ -70,7 +82,22 @@ export async function processAuditJob(
     const reportToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    // Step 7: Update job (in production: save to DB)
+    // Step 7: Store PDF in Vercel Blob
+    let reportBlobUrl: string | undefined;
+    if (put) {
+      try {
+        const blob = await put(`reports/${reportToken}.pdf`, pdfBlob, { access: 'public' });
+        reportBlobUrl = blob.url;
+        console.log(`[Processor] Stored PDF at: ${reportBlobUrl}`);
+      } catch (blobError) {
+        console.error('[Processor] Failed to store PDF in Blob:', blobError);
+        throw new Error('Failed to store audit report');
+      }
+    } else {
+      console.warn('[Processor] Vercel Blob not configured, PDF will not be persisted');
+    }
+
+    // Step 8: Update job (in production: save to DB)
     const updatedJob: AuditJob = {
       ...job,
       status: 'complete',
@@ -78,6 +105,7 @@ export async function processAuditJob(
       completedAt: new Date().toISOString(),
       reportToken,
       reportTokenExpiresAt: expiresAt,
+      reportBlobUrl,
       aeiScore: aeiScore.overall,
       recommendations,
       totalCostUSD: runViewModel.costs.total,

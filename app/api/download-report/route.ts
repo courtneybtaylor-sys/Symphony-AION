@@ -119,6 +119,30 @@ export async function GET(request: Request) {
         );
       }
 
+      // If PDF is stored in Vercel Blob, redirect to it
+      if (auditJob.reportBlobUrl) {
+        // Log download event
+        try {
+          const { default: getPrisma } = await import('@/lib/db');
+          const prisma = await getPrisma();
+          await prisma.analyticsEvent.create({
+            data: {
+              userId: auditJob.userId,
+              eventType: 'report_downloaded',
+              metadata: JSON.stringify({
+                jobId: auditJob.id,
+                reportToken: token!.slice(0, 8) + '...',
+              }),
+            },
+          });
+        } catch {
+          // Ignore analytics errors
+        }
+
+        // Redirect to Blob storage
+        return NextResponse.redirect(auditJob.reportBlobUrl, { status: 302 });
+      }
+
       // Log download event
       try {
         const { default: getPrisma } = await import('@/lib/db');
