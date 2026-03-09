@@ -29,36 +29,36 @@ export async function POST(request: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    let body: any;
     const contentType = request.headers.get('content-type') || '';
+    let telemetry: unknown;
 
-    // Handle both JSON and FormData uploads
-    if (contentType.includes('application/json')) {
-      body = await request.json();
-    } else if (contentType.includes('multipart/form-data')) {
+    // Handle FormData or JSON uploads
+    if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
-      const telemetryField = formData.get('telemetry');
-      if (typeof telemetryField === 'string') {
-        body = { telemetry: JSON.parse(telemetryField) };
-      } else if (telemetryField instanceof File) {
-        body = { telemetry: JSON.parse(await telemetryField.text()) };
-      } else {
-        throw new Error('Invalid telemetry field in FormData');
+      const file = formData.get('file') as File;
+      if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
+      try {
+        telemetry = JSON.parse(await file.text());
+      } catch {
+        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
       }
     } else {
-      body = await request.json();
+      try {
+        const body = await request.json();
+        telemetry = body.telemetry || body;
+      } catch {
+        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      }
     }
 
     // Phase 4e: Validate input
-    const parsed = TelemetryUploadSchema.safeParse(body);
+    const parsed = TelemetryUploadSchema.safeParse({ telemetry });
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
-
-    const telemetry = body.telemetry || body;
 
     // Task 5: Validate telemetry structure sizes
     const telemetrySizeCheck = validateTelemetrySize(telemetry, '/api/upload-telemetry');
