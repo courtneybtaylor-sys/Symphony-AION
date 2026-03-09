@@ -241,11 +241,11 @@ function addCoverPage(
   // Right half: Component scores
   const rightX = margin + (pageWidth - margin * 2) / 2 + 8;
   const components = [
-    { label: 'Cost Efficiency', value: aeiScore.components.costEfficiency },
-    { label: 'Token Efficiency', value: aeiScore.components.tokenEfficiency },
-    { label: 'Latency Score', value: aeiScore.components.latencyScore },
-    { label: 'Reliability Score', value: aeiScore.components.reliabilityScore },
-    { label: 'Retry Penalty', value: aeiScore.components.retryPenalty },
+    { label: 'Loop Tax', value: aeiScore.components.loopTax },
+    { label: 'Framework Overhead', value: aeiScore.components.frameworkOverhead },
+    { label: 'Model Misallocation', value: aeiScore.components.modelMisallocation },
+    { label: 'Drift Score', value: aeiScore.components.driftScore },
+    { label: 'Gate Violation Rate', value: aeiScore.components.gateViolationRate },
   ];
 
   setTextColor(doc, COLORS.secondaryText);

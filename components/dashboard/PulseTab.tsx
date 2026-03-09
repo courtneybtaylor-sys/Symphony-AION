@@ -191,24 +191,24 @@ export function PulseTab({ data, loading }: PulseTabProps) {
           <div className="col-span-3 space-y-3">
             {[
               {
-                label: 'Cost Efficiency',
-                value: aeiScore.components.costEfficiency,
+                label: 'Loop Tax',
+                value: aeiScore.components.loopTax,
               },
               {
-                label: 'Token Efficiency',
-                value: aeiScore.components.tokenEfficiency,
+                label: 'Framework Overhead',
+                value: aeiScore.components.frameworkOverhead,
               },
               {
-                label: 'Latency Score',
-                value: aeiScore.components.latencyScore,
+                label: 'Model Misallocation',
+                value: aeiScore.components.modelMisallocation,
               },
               {
-                label: 'Reliability Score',
-                value: aeiScore.components.reliabilityScore,
+                label: 'Drift Score',
+                value: aeiScore.components.driftScore,
               },
               {
-                label: 'Retry Penalty',
-                value: aeiScore.components.retryPenalty,
+                label: 'Gate Violation Rate',
+                value: aeiScore.components.gateViolationRate,
               },
             ].map((component) => (
               <div key={component.label} className="flex items-center gap-3">
