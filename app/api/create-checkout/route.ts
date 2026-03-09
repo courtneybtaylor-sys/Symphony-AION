@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: 'Stripe not configured',
-          message: 'Contact hello@symphony-aion.com to complete purchase',
+          message: 'Contact hello@khepellc.com to complete purchase',
         },
         { status: 503 }
       );
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: 'Symphony-AION Forensic Audit',
+                name: 'Kheper LLC Forensic Audit',
                 description: 'Comprehensive AI workflow analysis and optimization report',
                 images: [],
               },

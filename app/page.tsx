@@ -77,11 +77,24 @@ export default function LandingPage() {
 
       {/* Footer */}
       <div className="border-t border-slate-700 bg-slate-900/50 py-8">
-        <div className="max-w-6xl mx-auto px-6 text-center text-slate-400 text-sm">
+        <div className="max-w-6xl mx-auto px-6 text-center text-slate-400 text-sm space-y-2">
+          <p>
+            <strong className="text-white">Kheper LLC</strong> | Founded by Courtney B. Taylor
+          </p>
           <p>
             Questions? Email{' '}
-            <a href="mailto:hello@symphony-aion.com" className="text-blue-400 hover:text-blue-300">
-              hello@symphony-aion.com
+            <a href="mailto:hello@khepellc.com" className="text-blue-400 hover:text-blue-300">
+              hello@khepellc.com
+            </a>
+            {' '}| Phone:{' '}
+            <a href="tel:+18165276799" className="text-blue-400 hover:text-blue-300">
+              +1(816) 527-6799
+            </a>
+          </p>
+          <p>
+            Visit us at{' '}
+            <a href="https://khepellc.com" className="text-blue-400 hover:text-blue-300">
+              khepellc.com
             </a>
           </p>
         </div>

@@ -199,8 +199,8 @@ export default function CheckoutPageClient() {
               {/* Support */}
               <div className="text-xs text-slate-400 text-center border-t border-slate-600 pt-4">
                 Questions? Email{' '}
-                <a href="mailto:hello@symphony-aion.com" className="text-blue-400 hover:text-blue-300">
-                  hello@symphony-aion.com
+                <a href="mailto:hello@khepellc.com" className="text-blue-400 hover:text-blue-300">
+                  hello@khepellc.com
                 </a>
               </div>
             </div>

@@ -70,7 +70,7 @@ function generateAuditReportHTML(params: {
 </head>
 <body>
     <div class="header">
-        <h1>Symphony-AION</h1>
+        <h1>Kheper LLC</h1>
         <p>AI Workflow Forensic Audit Complete</p>
     </div>
 
@@ -129,15 +129,15 @@ function generateAuditReportHTML(params: {
 
         <div class="section">
             <h2>Questions?</h2>
-            <p>📧 Email: <a href="mailto:hello@symphony-aion.com">hello@symphony-aion.com</a></p>
-            <p>📖 Docs: <a href="https://docs.symphony-aion.com">docs.symphony-aion.com</a></p>
+            <p>📧 Email: <a href="mailto:hello@khepellc.com">hello@khepellc.com</a></p>
+            <p>📖 Docs: <a href="https://docs.khepellc.com">docs.khepellc.com</a></p>
         </div>
     </div>
 
     <div class="footer">
         <p>INTERNAL USE ONLY — CONFIDENTIAL</p>
         <p>Report ID: ${jobId}</p>
-        <p>© 2024 Symphony-AION. All rights reserved.</p>
+        <p>© 2024 Kheper LLC. All rights reserved.</p>
     </div>
 </body>
 </html>
@@ -166,7 +166,7 @@ export async function sendReportEmail(params: SendReportEmailParams): Promise<vo
   })
 
   const emailText = `
-Symphony-AION Forensic Audit Complete
+Kheper LLC Forensic Audit Complete
 
 Your AI workflow forensic audit is complete.
 
@@ -178,7 +178,7 @@ Report ID: ${jobId}
 Download your report (expires ${expiresDate}):
 ${downloadUrl}
 
-Questions? Email: hello@symphony-aion.com
+Questions? Email: hello@khepellc.com
   `
 
   const resend = getResendClient()
@@ -187,12 +187,12 @@ Questions? Email: hello@symphony-aion.com
     // Production: Send via Resend
     try {
       await resend.emails.send({
-        from: 'Symphony-AION <reports@symphony-aion.com>',
+        from: 'Kheper LLC <reports@khepellc.com>',
         to,
-        subject: `Your Symphony-AION Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`,
+        subject: `Your Kheper LLC Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`,
         html: emailHtml,
         text: emailText,
-        replyTo: 'hello@symphony-aion.com',
+        replyTo: 'hello@khepellc.com',
       })
       console.log(`[Email] ✓ Sent audit report to ${to} (job ${jobId})`)
     } catch (error) {
@@ -213,9 +213,9 @@ function logEmailToConsole(params: { to: string; jobId: string; grade: string; a
   const { to, jobId, grade, aeiScore, downloadUrl, expiresDate } = params
   console.log(`[Email] Sending audit report to ${to}`)
   console.log(`[Email] Job ID: ${jobId}`)
-  console.log(`[Email] Subject: Your Symphony-AION Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`)
-  console.log(`[Email] From: Symphony-AION <reports@symphony-aion.com>`)
-  console.log(`[Email] Reply-To: hello@symphony-aion.com`)
+  console.log(`[Email] Subject: Your Kheper LLC Forensic Audit — Grade ${grade} (AEI: ${aeiScore}/100)`)
+  console.log(`[Email] From: Kheper LLC <reports@khepellc.com>`)
+  console.log(`[Email] Reply-To: hello@khepellc.com`)
   console.log(`[Email] Download URL: ${downloadUrl}`)
   console.log(`[Email] Expires: ${expiresDate}`)
 }
@@ -226,8 +226,8 @@ function logEmailToConsole(params: { to: string; jobId: string; grade: string; a
 export async function sendPaymentFailureEmail(email: string, reason: string): Promise<void> {
   const resend = getResendClient()
 
-  const subject = 'Payment Failed — Symphony-AION Audit'
-  const text = `Your payment for the Symphony-AION audit failed: ${reason}\n\nPlease retry or contact support.`
+  const subject = 'Payment Failed — Kheper LLC Audit'
+  const text = `Your payment for the Kheper LLC audit failed: ${reason}\n\nPlease retry or contact support.`
   const html = `
 <!DOCTYPE html>
 <html>
@@ -236,7 +236,7 @@ export async function sendPaymentFailureEmail(email: string, reason: string): Pr
 <div class="container">
   <h2>Payment Failed</h2>
   <div class="alert">
-    <p>Your payment for the Symphony-AION forensic audit failed:</p>
+    <p>Your payment for the Kheper LLC forensic audit failed:</p>
     <p><strong>${reason}</strong></p>
     <p>Please <a href="http://localhost:3000/checkout">retry your payment</a> or contact support.</p>
   </div>
@@ -248,7 +248,7 @@ export async function sendPaymentFailureEmail(email: string, reason: string): Pr
   if (resend && process.env.RESEND_API_KEY) {
     try {
       await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'support@symphony-aion.com',
+        from: process.env.FROM_EMAIL || 'support@khepellc.com',
         to: email,
         subject,
         html,
@@ -270,7 +270,7 @@ export async function sendPaymentReceiptEmail(email: string, jobId: string, amou
   const resend = getResendClient()
 
   const amountUSD = (amount / 100).toFixed(2)
-  const subject = `Payment Receipt — Symphony-AION Audit ($${amountUSD})`
+  const subject = `Payment Receipt — Kheper LLC Audit ($${amountUSD})`
   const text = `Your payment of $${amountUSD} has been received. Your audit report is being generated.\n\nJob ID: ${jobId}`
   const html = `
 <!DOCTYPE html>
@@ -293,7 +293,7 @@ export async function sendPaymentReceiptEmail(email: string, jobId: string, amou
   if (resend && process.env.RESEND_API_KEY) {
     try {
       await resend.emails.send({
-        from: process.env.FROM_EMAIL || 'billing@symphony-aion.com',
+        from: process.env.FROM_EMAIL || 'billing@khepellc.com',
         to: email,
         subject,
         html,

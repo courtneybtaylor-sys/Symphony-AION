@@ -131,7 +131,7 @@ export default function CheckoutSuccessPageClient() {
               </div>
               <div>
                 <div className="font-medium text-white mb-1">Link expired?</div>
-                <p>Email hello@symphony-aion.com with your order ID and we'll send a new link.</p>
+                <p>Email hello@khepellc.com with your order ID and we'll send a new link.</p>
               </div>
               <div>
                 <div className="font-medium text-white mb-1">Need to run another audit?</div>
@@ -151,8 +151,8 @@ export default function CheckoutSuccessPageClient() {
           <div className="text-center">
             <p className="text-slate-400 text-sm">
               Questions or issues? Email{' '}
-              <a href="mailto:hello@symphony-aion.com" className="text-blue-400 hover:text-blue-300">
-                hello@symphony-aion.com
+              <a href="mailto:hello@khepellc.com" className="text-blue-400 hover:text-blue-300">
+                hello@khepellc.com
               </a>
             </p>
           </div>

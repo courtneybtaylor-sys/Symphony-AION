@@ -2,9 +2,10 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import EmailCaptureModal from './EmailCaptureModal';
 
 interface UploadState {
-  stage: 'idle' | 'uploading' | 'validating' | 'qualified' | 'not-qualified' | 'error';
+  stage: 'idle' | 'uploading' | 'validating' | 'qualified' | 'email-capture' | 'preview' | 'not-qualified' | 'error';
   file: File | null;
   error?: string;
   result?: {
@@ -24,6 +25,14 @@ interface UploadState {
     projectedROI: number;
     telemetryHash: string;
     message: string;
+  };
+  email?: string;
+  previewData?: {
+    aei: number;
+    gei: number;
+    shi: number;
+    grade: string;
+    estimatedMonthlySavings: number;
   };
 }
 
@@ -71,30 +80,10 @@ export default function AuditUploader() {
 
         if (result.qualified) {
           setState({
-            stage: result.warningOnly ? 'qualified' : 'qualified',
+            stage: 'qualified',
             file,
             result,
           });
-
-          // Redirect to checkout after 1.5 seconds
-          setTimeout(() => {
-            const summary = result.summary;
-            const summaryStr = encodeURIComponent(
-              JSON.stringify({
-                runCount: summary.runCount,
-                modelCallCount: summary.modelCallCount,
-                totalCostUSD: summary.totalCostUSD,
-                totalTokens: summary.totalTokens,
-                frameworkDetected: summary.frameworkDetected,
-                estimatedSavingsRangeLow: summary.estimatedSavingsRangeLow,
-                estimatedSavingsRangeHigh: summary.estimatedSavingsRangeHigh,
-                projectedROI: result.projectedROI,
-              })
-            );
-            router.push(
-              `/checkout?hash=${result.telemetryHash}&summary=${summaryStr}`
-            );
-          }, 1500);
         } else {
           setState({
             stage: 'not-qualified',
@@ -144,6 +133,75 @@ export default function AuditUploader() {
       }
     },
     [handleUpload]
+  );
+
+  const handleFreePreview = useCallback(() => {
+    setState(prev => ({ ...prev, stage: 'email-capture' }));
+  }, []);
+
+  const handleFullAudit = useCallback(() => {
+    if (!state.result) return;
+    const summary = state.result.summary;
+    const summaryStr = encodeURIComponent(
+      JSON.stringify({
+        runCount: summary.runCount,
+        modelCallCount: summary.modelCallCount,
+        totalCostUSD: summary.totalCostUSD,
+        totalTokens: summary.totalTokens,
+        frameworkDetected: summary.frameworkDetected,
+        estimatedSavingsRangeLow: summary.estimatedSavingsRangeLow,
+        estimatedSavingsRangeHigh: summary.estimatedSavingsRangeHigh,
+        projectedROI: state.result.projectedROI,
+      })
+    );
+    router.push(
+      `/checkout?hash=${state.result.telemetryHash}&summary=${summaryStr}`
+    );
+  }, [state.result, router]);
+
+  const handleEmailSubmit = useCallback(
+    async (email: string) => {
+      if (!state.result) return;
+
+      try {
+        setState(prev => ({ ...prev, stage: 'validating' }));
+
+        const response = await fetch('/api/free-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telemetryHash: state.result.telemetryHash,
+            email,
+            consentMarketing: true,
+          }),
+        });
+
+        if (!response.ok) {
+          setState(prev => ({
+            ...prev,
+            stage: 'error',
+            error: 'Failed to generate preview. Please try again.',
+          }));
+          return;
+        }
+
+        const preview = await response.json();
+        setState(prev => ({
+          ...prev,
+          stage: 'preview',
+          email,
+          previewData: preview,
+        }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        setState(prev => ({
+          ...prev,
+          stage: 'error',
+          error: `Failed to generate preview: ${message}`,
+        }));
+      }
+    },
+    [state.result]
   );
 
   return (
@@ -211,7 +269,7 @@ export default function AuditUploader() {
         </div>
       )}
 
-      {/* Qualified */}
+      {/* Qualified - Choose Option */}
       {state.stage === 'qualified' && state.result && (
         <div className="space-y-6">
           <div className="text-center space-y-4">
@@ -231,7 +289,7 @@ export default function AuditUploader() {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-green-400">Qualified for Audit!</h3>
-            <p className="text-slate-400 text-sm">Redirecting to checkout...</p>
+            <p className="text-slate-400 text-sm">Choose how to proceed</p>
           </div>
 
           {state.result.warningOnly && (
@@ -275,6 +333,75 @@ export default function AuditUploader() {
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={handleFreePreview}
+              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+            >
+              Get Free Preview
+            </button>
+            <button
+              onClick={handleFullAudit}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+            >
+              Purchase Full Audit ($750)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Email Capture */}
+      {state.stage === 'email-capture' && (
+        <EmailCaptureModal
+          onSubmit={handleEmailSubmit}
+          onCancel={() => setState(prev => ({ ...prev, stage: 'qualified' }))}
+        />
+      )}
+
+      {/* Preview */}
+      {state.stage === 'preview' && state.previewData && (
+        <div className="space-y-6">
+          <div className="text-center space-y-4">
+            <h3 className="text-2xl font-bold text-white">Your Free Preview</h3>
+            <p className="text-slate-400">Key metrics from your telemetry</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 text-center">
+              <div className="text-slate-400 text-sm mb-2">AEI Score</div>
+              <div className="text-4xl font-bold text-cyan-400">{state.previewData.aei}</div>
+              <div className="text-xs text-slate-500 mt-2">Efficiency Index</div>
+            </div>
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 text-center">
+              <div className="text-slate-400 text-sm mb-2">GEI Score</div>
+              <div className="text-4xl font-bold text-blue-400">{state.previewData.gei}</div>
+              <div className="text-xs text-slate-500 mt-2">Governance Exposure</div>
+            </div>
+            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 text-center">
+              <div className="text-slate-400 text-sm mb-2">SHI Score</div>
+              <div className="text-4xl font-bold text-green-400">{state.previewData.shi}</div>
+              <div className="text-xs text-slate-500 mt-2">Sovereign Health</div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+            <div className="text-slate-400 text-sm mb-2">Overall Grade</div>
+            <div className="text-3xl font-bold text-white mb-4">{state.previewData.grade}</div>
+            <div className="text-slate-400 text-sm mb-1">Estimated Monthly Savings</div>
+            <div className="text-2xl font-bold text-green-400">${state.previewData.estimatedMonthlySavings}</div>
+          </div>
+
+          <p className="text-sm text-slate-400 text-center">
+            Preview sent to: <span className="text-white font-mono">{state.email}</span>
+          </p>
+
+          <button
+            onClick={handleFullAudit}
+            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+          >
+            Upgrade to Full Audit ($750)
+          </button>
         </div>
       )}
 
