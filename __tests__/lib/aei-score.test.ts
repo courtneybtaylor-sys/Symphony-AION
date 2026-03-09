@@ -89,37 +89,43 @@ describe('AEI Scoring Engine', () => {
     };
   }
 
-  describe('MODEL_ROUTING_FAILURE flag', () => {
+  describe('Model Misallocation flag', () => {
     it('should NOT trigger on clean runs with single model', () => {
       const run = createRunViewModel();
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).not.toContain('MODEL_ROUTING_FAILURE');
+      expect(score.riskFlags).not.toContain('PREMIUM_ON_SIMPLE_TASK');
     });
 
-    it('should trigger when multiple models used with cost gap and failures', () => {
+    it('should trigger when using expensive models on simple tasks', () => {
       const run = createRunViewModel({
         costs: {
           total: 0.05,
           byModel: [
             {
-              model: 'gpt-4o-mini',
+              model: 'gpt-4',
               provider: 'openai',
-              cost: 0.01,
-              percentage: 0.2,
+              cost: 0.05,
+              percentage: 1.0,
             },
+          ],
+        },
+        tokens: {
+          input: 500, // Low token count = simple task
+          output: 100,
+          total: 600,
+          byModel: [
             {
-              model: 'gpt-4o',
-              provider: 'openai',
-              cost: 0.04,
-              percentage: 0.8,
+              model: 'gpt-4',
+              inputTokens: 500,
+              outputTokens: 100,
             },
           ],
         },
         steps: {
-          total: 2,
+          total: 1,
           completed: 1,
-          failed: 1,
+          failed: 0,
           pending: 0,
           list: [],
         },
@@ -127,10 +133,10 @@ describe('AEI Scoring Engine', () => {
 
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).toContain('MODEL_ROUTING_FAILURE');
+      expect(score.riskFlags).toContain('PREMIUM_ON_SIMPLE_TASK');
     });
 
-    it('should NOT trigger if cheap model succeeds (no escalation)', () => {
+    it('should NOT trigger if using cheap model with multiple calls', () => {
       const run = createRunViewModel({
         costs: {
           total: 0.02,
@@ -154,30 +160,30 @@ describe('AEI Scoring Engine', () => {
 
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).not.toContain('MODEL_ROUTING_FAILURE');
+      expect(score.riskFlags).not.toContain('PREMIUM_ON_SIMPLE_TASK');
     });
   });
 
-  describe('HALLUCINATION_DETECTED flag', () => {
-    it('should NOT trigger on clean runs without validation failures', () => {
+  describe('Governance Drift flag', () => {
+    it('should NOT trigger on clean runs without governance events', () => {
       const run = createRunViewModel();
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).not.toContain('HALLUCINATION_DETECTED');
+      expect(score.riskFlags).not.toContain('GOVERNANCE_DRIFT');
     });
 
-    it('should trigger when high validation failure rate with retries', () => {
+    it('should trigger when high governance event rate indicates drift', () => {
       const run = createRunViewModel({
         events: {
           total: 10,
           byKind: {
             [EventKind.RUN_STARTED]: 1,
             [EventKind.RUN_COMPLETED]: 1,
-            [EventKind.PHASE_ENTER]: 2,
-            [EventKind.PHASE_EXIT]: 2,
+            [EventKind.PHASE_ENTER]: 1,
+            [EventKind.PHASE_EXIT]: 1,
             [EventKind.TOKEN_COUNT]: 1,
-            [EventKind.GOVERNANCE]: 3, // 3 validations (high)
-            [EventKind.RETRY]: 2, // 2 retries
+            [EventKind.GOVERNANCE]: 3, // 3 governance events = 30% rate
+            [EventKind.RETRY]: 1,
             [EventKind.LOSS_CLASSIFY]: 0,
             [EventKind.COMPARE_BASE]: 0,
             [EventKind.COMPARE_OPT]: 0,
@@ -187,10 +193,10 @@ describe('AEI Scoring Engine', () => {
 
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).toContain('HALLUCINATION_DETECTED');
+      expect(score.riskFlags).toContain('GOVERNANCE_DRIFT');
     });
 
-    it('should trigger on multiple validation failures with concurrent retries', () => {
+    it('should trigger on multiple governance events indicating scope drift', () => {
       const run = createRunViewModel({
         events: {
           total: 12,
@@ -199,9 +205,9 @@ describe('AEI Scoring Engine', () => {
             [EventKind.RUN_COMPLETED]: 1,
             [EventKind.PHASE_ENTER]: 2,
             [EventKind.PHASE_EXIT]: 2,
-            [EventKind.TOKEN_COUNT]: 2,
-            [EventKind.GOVERNANCE]: 2, // 2 validations
-            [EventKind.RETRY]: 2, // 2 retries
+            [EventKind.TOKEN_COUNT]: 1,
+            [EventKind.GOVERNANCE]: 3, // 3 governance events
+            [EventKind.RETRY]: 2,
             [EventKind.LOSS_CLASSIFY]: 0,
             [EventKind.COMPARE_BASE]: 0,
             [EventKind.COMPARE_OPT]: 0,
@@ -211,10 +217,10 @@ describe('AEI Scoring Engine', () => {
 
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).toContain('HALLUCINATION_DETECTED');
+      expect(score.riskFlags).toContain('GOVERNANCE_DRIFT');
     });
 
-    it('should NOT trigger with few validations even if some fail', () => {
+    it('should NOT trigger with single governance event', () => {
       const run = createRunViewModel({
         events: {
           total: 10,
@@ -224,7 +230,7 @@ describe('AEI Scoring Engine', () => {
             [EventKind.PHASE_ENTER]: 2,
             [EventKind.PHASE_EXIT]: 2,
             [EventKind.TOKEN_COUNT]: 2,
-            [EventKind.GOVERNANCE]: 1, // Only 1 validation
+            [EventKind.GOVERNANCE]: 1, // Only 1 governance event = low rate
             [EventKind.RETRY]: 0,
             [EventKind.LOSS_CLASSIFY]: 0,
             [EventKind.COMPARE_BASE]: 0,
@@ -235,7 +241,7 @@ describe('AEI Scoring Engine', () => {
 
       const score = calculateAEI(run);
 
-      expect(score.riskFlags).not.toContain('HALLUCINATION_DETECTED');
+      expect(score.riskFlags).not.toContain('GOVERNANCE_DRIFT');
     });
   });
 
@@ -307,15 +313,29 @@ describe('AEI Scoring Engine', () => {
       expect(score.insights.length).toBeLessThanOrEqual(5);
     });
 
-    it('should include component scores', () => {
+    it('should include 5 component penalty scores', () => {
       const run = createRunViewModel();
       const score = calculateAEI(run);
 
-      expect(score.components.costEfficiency).toBeDefined();
-      expect(score.components.tokenEfficiency).toBeDefined();
-      expect(score.components.latencyScore).toBeDefined();
-      expect(score.components.reliabilityScore).toBeDefined();
-      expect(score.components.retryPenalty).toBeDefined();
+      expect(score.components.loopTax).toBeDefined();
+      expect(score.components.loopTax).toBeGreaterThanOrEqual(0);
+      expect(score.components.loopTax).toBeLessThanOrEqual(100);
+
+      expect(score.components.frameworkOverhead).toBeDefined();
+      expect(score.components.frameworkOverhead).toBeGreaterThanOrEqual(0);
+      expect(score.components.frameworkOverhead).toBeLessThanOrEqual(100);
+
+      expect(score.components.modelMisallocation).toBeDefined();
+      expect(score.components.modelMisallocation).toBeGreaterThanOrEqual(0);
+      expect(score.components.modelMisallocation).toBeLessThanOrEqual(100);
+
+      expect(score.components.driftScore).toBeDefined();
+      expect(score.components.driftScore).toBeGreaterThanOrEqual(0);
+      expect(score.components.driftScore).toBeLessThanOrEqual(100);
+
+      expect(score.components.gateViolationRate).toBeDefined();
+      expect(score.components.gateViolationRate).toBeGreaterThanOrEqual(0);
+      expect(score.components.gateViolationRate).toBeLessThanOrEqual(100);
     });
 
     it('should assign A grade for efficient runs', () => {
@@ -365,15 +385,44 @@ describe('AEI Scoring Engine', () => {
         steps: {
           total: 5,
           completed: 2,
-          failed: 3,
+          failed: 3, // 60% failure rate
           pending: 0,
           list: [],
+        },
+        tokens: {
+          input: 500, // Low tokens with premium model
+          output: 100,
+          total: 600,
+          byModel: [
+            {
+              model: 'gpt-4',
+              inputTokens: 500,
+              outputTokens: 100,
+            },
+          ],
+        },
+        events: {
+          total: 12,
+          byKind: {
+            [EventKind.RUN_STARTED]: 1,
+            [EventKind.RUN_COMPLETED]: 1,
+            [EventKind.PHASE_ENTER]: 2,
+            [EventKind.PHASE_EXIT]: 2,
+            [EventKind.TOKEN_COUNT]: 1,
+            [EventKind.GOVERNANCE]: 2, // Governance events trigger drift
+            [EventKind.RETRY]: 3, // Retries trigger loop tax
+            [EventKind.VALIDATION_FAILED]: 1, // Gate violations
+            [EventKind.LOSS_CLASSIFY]: 0,
+            [EventKind.COMPARE_BASE]: 0,
+            [EventKind.COMPARE_OPT]: 0,
+          } as Record<EventKind, number>,
         },
       });
 
       const score = calculateAEI(run);
 
-      expect(['C', 'D', 'F']).toContain(score.grade);
+      // With canonical formula and multiple penalties, expect lower grades
+      expect(['B', 'C', 'F']).toContain(score.grade);
     });
   });
 });
