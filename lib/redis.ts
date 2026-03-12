@@ -9,12 +9,12 @@
 
 import Redis from 'ioredis'
 
-let redis: Redis | any = null
+let _redisClient: Redis | any = null
 let initAttempted = false
 
 function initializeRedis(): Redis | any {
-  if (redis) return redis
-  if (initAttempted && !redis) return null // Already tried, Redis unavailable
+  if (_redisClient) return _redisClient
+  if (initAttempted && !_redisClient) return null // Already tried, Redis unavailable
 
   initAttempted = true
 
@@ -31,13 +31,13 @@ function initializeRedis(): Redis | any {
   if (process.env.NODE_ENV === 'test') {
     // Use in-memory mock for tests
     const RedisMock = require('ioredis-mock')
-    redis = new RedisMock()
+    _redisClient = new RedisMock()
     console.log('[Redis] Using in-memory mock for tests')
   } else if (process.env.UPSTASH_REDIS_REST_URL) {
     // Production: Upstash (serverless-compatible)
     try {
       const { Redis: UpstashRedis } = require('@upstash/redis')
-      redis = new UpstashRedis({
+      _redisClient = new UpstashRedis({
         url: process.env.UPSTASH_REDIS_REST_URL,
         token: process.env.UPSTASH_REDIS_REST_TOKEN,
       })
@@ -50,18 +50,18 @@ function initializeRedis(): Redis | any {
     // Local development or custom: standard Redis
     try {
       const redisUrl = process.env.REDIS_URL
-      redis = new Redis(redisUrl, {
+      _redisClient = new Redis(redisUrl, {
         maxRetriesPerRequest: 3,
         retryStrategy: (times: number) => Math.min(times * 50, 2000),
         enableReadyCheck: false,
         enableOfflineQueue: false,
       })
 
-      redis.on('error', (err: any) => {
+      _redisClient.on('error', (err: any) => {
         console.warn('[Redis] Connection error:', err.message)
       })
 
-      redis.on('connect', () => {
+      _redisClient.on('connect', () => {
         console.log('[Redis] Connected to', redisUrl)
       })
     } catch (err: any) {
@@ -70,7 +70,7 @@ function initializeRedis(): Redis | any {
     }
   }
 
-  return redis
+  return _redisClient
 }
 
 /**
@@ -82,10 +82,15 @@ export function getRedis(): Redis | any | null {
 }
 
 /**
- * Direct export for backward compatibility (lazy, checked)
+ * Named export for direct import — uses lazy getter so no connection
+ * is attempted until the value is actually read.
+ * Satisfies: import { redis } from './redis'
  */
-Object.defineProperty(exports, 'redis', {
-  get() {
-    return getRedis()
+export const redis = new Proxy({} as any, {
+  get(_target, prop) {
+    const client = initializeRedis()
+    if (!client) return undefined
+    const val = client[prop]
+    return typeof val === 'function' ? val.bind(client) : val
   },
 })

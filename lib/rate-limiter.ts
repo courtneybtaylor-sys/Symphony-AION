@@ -34,6 +34,18 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const config = LIMITS[path as keyof typeof LIMITS] || LIMITS.default
   const now = Date.now()
+
+  // If Redis is not configured, fail open (allow all requests)
+  const client = redis && typeof redis.pipeline === 'function' ? redis : null
+  if (!client) {
+    return {
+      allowed: true,
+      remaining: config.requests,
+      resetAt: now + config.windowMs,
+      limit: config.requests,
+    }
+  }
+
   const windowStart = now - config.windowMs
   const key = `rl:${ip}:${path}`
 
