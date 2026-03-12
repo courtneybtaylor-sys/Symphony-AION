@@ -1,7 +1,7 @@
 /**
  * Next.js Middleware
  * - Refreshes Supabase auth session (keeps cookies fresh on every request)
- * - Protects /admin — redirects unauthenticated users to /auth
+ * - Protects /admin, /dashboard, /billing, /api/ingest/upload — redirects unauthenticated users to /login
  * - Rate limiting for API routes
  * - CORS headers
  */
@@ -16,6 +16,12 @@ const ALLOWED_ORIGINS = [
   'https://symphony-aion.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[]
+
+/** Routes that require an active session */
+const PROTECTED_ROUTES = ['/dashboard', '/admin', '/billing', '/api/ingest/upload']
+
+/** Routes that are always public — skip auth check entirely */
+const PUBLIC_ROUTES = ['/login', '/auth', '/api/upload-telemetry', '/api/checkout', '/api/stripe-webhook']
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -42,6 +48,11 @@ export async function middleware(request: NextRequest) {
       status: 204,
       headers: getCorsHeaders(origin),
     })
+  }
+
+  // Always public — skip auth check
+  if (PUBLIC_ROUTES.some(r => pathname.startsWith(r))) {
+    return NextResponse.next()
   }
 
   // Build a response object we'll mutate as needed
@@ -87,13 +98,21 @@ export async function middleware(request: NextRequest) {
     // This call refreshes the session token in the cookie store
     const { data: { user } } = await supabase.auth.getUser()
 
-    // ── /admin route guard ──────────────────────────────────────────────────
-    // Middleware only checks that a session exists; the page itself does the
-    // full role check via Prisma so we avoid a DB call on every request.
-    if (pathname.startsWith('/admin') && !user) {
-      const redirectUrl = new URL('/auth', request.url)
-      redirectUrl.searchParams.set('returnTo', pathname)
-      return NextResponse.redirect(redirectUrl)
+    // ── Protected route guard ───────────────────────────────────────────────
+    // Middleware checks that a session exists; pages do full role checks.
+    const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r))
+    if (isProtected && !user) {
+      // API routes return 401 with a loginUrl hint
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Unauthorized', loginUrl: '/login' },
+          { status: 401 }
+        )
+      }
+      // UI routes redirect to /login with returnTo
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('returnTo', pathname)
+      return NextResponse.redirect(loginUrl)
     }
   }
 
@@ -138,5 +157,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/api/:path*', '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

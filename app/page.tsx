@@ -95,7 +95,7 @@ export default function LandingPage() {
             {!authUser ? (
               /* Logged-out */
               <Link
-                href="/auth"
+                href="/login"
                 className="text-ghost hover:text-papyrus text-sm transition"
               >
                 Sign In

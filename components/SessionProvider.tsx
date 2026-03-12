@@ -1,11 +1,13 @@
-'use client';
+'use client'
 
-import { SessionProvider as NextAuthSessionProvider } from 'next-auth/react';
-
+/**
+ * Auth is handled via Supabase client-side helpers (lib/supabase/client.ts).
+ * This component is kept as a passthrough wrapper for layout compatibility.
+ */
 export default function SessionProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  return <NextAuthSessionProvider>{children}</NextAuthSessionProvider>;
+  return <>{children}</>
 }

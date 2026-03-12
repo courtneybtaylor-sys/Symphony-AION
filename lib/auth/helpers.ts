@@ -1,12 +1,10 @@
 /**
  * Auth Helper Functions
  * Uses Supabase for session validation.
- * Supports DEMO_MODE bypass for development.
  */
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { DEMO_MODE, DEMO_USER } from '@/lib/demo-mode'
 
 export interface AuthenticatedUser {
   id: string
@@ -17,19 +15,9 @@ export interface AuthenticatedUser {
 
 /**
  * Get the authenticated user from the Supabase session.
- * In demo mode, returns the demo user.
  * Returns null if not authenticated.
  */
 export async function getAuthUser(): Promise<AuthenticatedUser | null> {
-  if (DEMO_MODE) {
-    return {
-      id: DEMO_USER.id,
-      email: DEMO_USER.email,
-      name: DEMO_USER.name,
-      role: DEMO_USER.role,
-    }
-  }
-
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user?.email) return null
@@ -49,17 +37,6 @@ export async function getAuthUser(): Promise<AuthenticatedUser | null> {
 export async function requireAuth(): Promise<
   { user: AuthenticatedUser; error?: undefined } | { user?: undefined; error: NextResponse }
 > {
-  if (DEMO_MODE) {
-    return {
-      user: {
-        id: DEMO_USER.id,
-        email: DEMO_USER.email,
-        name: DEMO_USER.name,
-        role: DEMO_USER.role,
-      },
-    }
-  }
-
   const user = await getAuthUser()
   if (!user) {
     return {
@@ -76,13 +53,5 @@ export async function requireAuth(): Promise<
  * Optional authentication — returns null (not an error) for unauthenticated requests.
  */
 export async function optionalAuth(): Promise<AuthenticatedUser | null> {
-  if (DEMO_MODE) {
-    return {
-      id: DEMO_USER.id,
-      email: DEMO_USER.email,
-      name: DEMO_USER.name,
-      role: DEMO_USER.role,
-    }
-  }
   return getAuthUser()
 }

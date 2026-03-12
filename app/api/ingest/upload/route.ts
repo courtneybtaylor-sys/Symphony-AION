@@ -1,55 +1,46 @@
 /**
  * POST /api/ingest/upload
  * Accepts telemetry files in multiple formats.
- * Auth: Supabase session — unauthenticated requests receive 401 with a
- * redirectTo hint so the client can send the user to /auth?returnTo=/upload.
+ * Auth: Supabase session required — unauthenticated requests receive 401.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { DEMO_MODE, DEMO_USER } from '@/lib/demo-mode';
 import { processIngestion } from '@/lib/ingestion/ingestion-processor';
 import { processFromIngestion } from '@/lib/audit-processor';
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check — supports DEMO_MODE bypass
-    let currentUser: { id: string; email: string } | null = null;
+    // Auth check — Supabase session required
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (DEMO_MODE) {
-      currentUser = { id: DEMO_USER.id, email: DEMO_USER.email };
-    } else {
-      const supabase = await createClient();
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-      if (authError || !user?.email) {
-        return NextResponse.json(
-          { error: 'Unauthorized', redirectTo: '/auth?returnTo=/upload' },
-          { status: 401 }
-        );
-      }
-
-      const { default: getPrismaAuth } = await import('@/lib/db');
-      const prismaAuth = await getPrismaAuth();
-
-      // Find or create Prisma User record keyed by email (bridge from Supabase auth)
-      const dbUser = await prismaAuth.user.upsert({
-        where: { email: user.email },
-        create: {
-          email: user.email,
-          name:
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email.split('@')[0],
-          role: 'user',
-        },
-        update: {},
-        select: { id: true, email: true },
-      });
-
-      currentUser = { id: dbUser.id, email: dbUser.email };
+    if (authError || !user?.email) {
+      return NextResponse.json(
+        { error: 'Unauthorized', loginUrl: '/login' },
+        { status: 401 }
+      );
     }
 
+    const { default: getPrismaAuth } = await import('@/lib/db');
+    const prismaAuth = await getPrismaAuth();
+
+    // Find or create Prisma User record keyed by email (bridge from Supabase auth)
+    const dbUser = await prismaAuth.user.upsert({
+      where: { email: user.email },
+      create: {
+        email: user.email,
+        name:
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email.split('@')[0],
+        role: 'user',
+      },
+      update: {},
+      select: { id: true, email: true },
+    });
+
+    const currentUser = { id: dbUser.id, email: dbUser.email };
     const authUser = currentUser;
 
     // Get prisma client for subsequent DB operations
