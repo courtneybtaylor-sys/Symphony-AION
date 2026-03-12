@@ -81,3 +81,19 @@ export async function requireAuth(): Promise<
   return { user };
 }
 
+/**
+ * Optional authentication for public API routes.
+ * In demo mode, returns demo user.
+ * Returns null (not an error) if not authenticated — anonymous users allowed.
+ */
+export async function optionalAuth(): Promise<AuthenticatedUser | null> {
+  if (DEMO_MODE) {
+    return {
+      id: DEMO_USER.id,
+      email: DEMO_USER.email,
+      name: DEMO_USER.name,
+      role: DEMO_USER.role,
+    };
+  }
+  return getAuthUser();
+}
