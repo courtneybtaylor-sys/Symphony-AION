@@ -26,6 +26,7 @@ model User {
   updatedAt        DateTime   @updatedAt
   uploads          Upload[]
   auditJobs        AuditJob[]
+  ingestionJobs    IngestionJob[]
   auditLogs        AuditLog[]
 
   @@index([email])
@@ -54,9 +55,18 @@ model AuditJob {
   upload               Upload    @relation(fields: [uploadId], references: [id])
   userId               String
   user                 User      @relation(fields: [userId], references: [id])
+  ingestionId          String?
+  ingestionJob         IngestionJob? @relation(fields: [ingestionId], references: [id])
   stripeSessionId      String?   @unique
   status               String    @default("queued")                               // queued, processing, completed, failed, pending_payment
   aeiScore             Json?                                                      // Full AEI score breakdown
+  geiScore             Float?
+  shiScore             Float?
+  shiStatus            String?   // healthy, caution, critical
+  testament_id         String?
+  testament_sc_timestamp String?
+  maat_all_pass        Boolean?
+  orda_anchor_hash     String?
   recommendations      Json?                                                      // Array of recommendations
   reportToken          String?   @unique
   reportTokenExpiresAt DateTime?
@@ -114,4 +124,73 @@ model FreePreviewRequest {
 
   @@index([email])
   @@index([createdAt])
+}
+
+model IngestionJob {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           String     @default("processing")  // processing, completed, failed
+  sourceFormat     String                              // openai-export, anthropic-export, langchain, etc.
+  rawPath          String                              // Path in Vercel Blob or temp storage
+  normalizedCount  Int        @default(0)              // Number of CanonicalEvents generated
+  runCount         Int        @default(0)              // Number of unique runs detected
+  progress         Int        @default(0)              // Percentage: 0-100
+  error            String?                             // Error message if failed
+  createdAt        DateTime   @default(now())
+  completedAt      DateTime?
+
+  auditJobs        AuditJob[]                          // Linked audit jobs from this ingestion
+  normalizedEvents NormalizedEvent[]
+  chunks           Chunk[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model NormalizedEvent {
+  id              String     @id @default(cuid())
+  ingestionId     String
+  ingestionJob    IngestionJob @relation(fields: [ingestionId], references: [id], onDelete: Cascade)
+
+  // Canonical event fields
+  run_id          String                              // Group by workflow/conversation ID
+  step_id         String                              // Unique step within run
+  event_kind      String                              // llm_call, tool_call, function_call, user_message, etc.
+  provider        String                              // openai, anthropic, google, etc.
+  model           String?                             // gpt-4, claude-3-opus, etc.
+  tokens_input    Int        @default(0)
+  tokens_output   Int        @default(0)
+  cost_usd        Float      @default(0)
+  status          String     @default("success")      // success, error, timeout, etc.
+  duration_ms     Int?
+  error_type      String?
+  metadata        Json?      @db.JsonB               // Additional context
+  timestamp       DateTime
+  createdAt       DateTime   @default(now())
+
+  @@index([ingestionId])
+  @@index([run_id])
+  @@index([step_id])
+  @@index([provider, model])
+  @@index([createdAt])
+}
+
+model Chunk {
+  id              String     @id @default(cuid())
+  ingestionId     String
+  ingestionJob    IngestionJob @relation(fields: [ingestionId], references: [id], onDelete: Cascade)
+
+  index           Int                                 // Chunk sequence number
+  filename        String                              // Original filename if from file
+  item_count      Int        @default(0)              // Items in this chunk
+  size_bytes      Int        @default(0)
+  sha256          String                              // Hash of chunk content
+  prev_hash       String?                             // Hash of previous chunk (for chain)
+
+  createdAt       DateTime   @default(now())
+
+  @@index([ingestionId])
+  @@unique([ingestionId, index])
 }
