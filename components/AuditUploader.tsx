@@ -63,6 +63,11 @@ export default function AuditUploader() {
 
         if (!response.ok) {
           const error = await response.json();
+          // Auth gate: redirect to sign-in and come back after login
+          if (response.status === 401 && error.redirectTo) {
+            window.location.href = error.redirectTo;
+            return;
+          }
           setState({
             stage: 'error',
             file: null,

@@ -3,16 +3,46 @@
 import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import AuditUploader from '@/components/AuditUploader'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false)
   const [email, setEmail] = useState('')
   const [heroEmail, setHeroEmail] = useState('')
   const uploadRef = useRef<HTMLDivElement>(null)
+  const [authUser, setAuthUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     setMounted(true)
+
+    const supabase = createClient()
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setAuthUser(user)
+      if (user?.email) {
+        fetch('/api/auth/profile')
+          .then((r) => r.json())
+          .then((d) => { if (d.isAdmin) setIsAdmin(true) })
+          .catch(() => {})
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null)
+      if (!session?.user) setIsAdmin(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setAuthUser(null)
+    setIsAdmin(false)
+  }
 
   const handleEmailSubmit = async (e: React.FormEvent, source: string) => {
     e.preventDefault()
@@ -60,12 +90,51 @@ export default function LandingPage() {
             <a href="#pricing" className="text-ghost hover:text-papyrus text-sm transition">
               Pricing
             </a>
-            <Link
-              href="/login"
-              className="text-ghost hover:text-papyrus text-sm transition"
-            >
-              Sign In
-            </Link>
+
+            {/* Auth nav — 3 states */}
+            {!authUser ? (
+              /* Logged-out */
+              <Link
+                href="/auth"
+                className="text-ghost hover:text-papyrus text-sm transition"
+              >
+                Sign In
+              </Link>
+            ) : isAdmin ? (
+              /* Logged-in admin */
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/admin"
+                  className="text-gold hover:text-gold-bright text-sm font-medium transition"
+                >
+                  Admin
+                </Link>
+                <span className="text-ghost/40 text-sm">|</span>
+                <span className="text-ghost text-xs truncate max-w-[120px]">
+                  {authUser.email}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  className="text-ghost hover:text-papyrus text-sm transition"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              /* Logged-in regular user */
+              <div className="flex items-center gap-3">
+                <span className="text-ghost text-xs truncate max-w-[140px]">
+                  {authUser.email}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  className="text-ghost hover:text-papyrus text-sm transition"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+
             <button
               onClick={scrollToUpload}
               className="px-4 py-2 bg-gold hover:bg-gold-bright text-nun rounded-lg font-medium transition text-sm"
