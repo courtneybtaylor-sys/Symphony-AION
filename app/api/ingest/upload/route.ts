@@ -1,12 +1,12 @@
 /**
  * POST /api/ingest/upload
- * Accepts telemetry files in multiple formats
- * Returns ingestionId and initializes async processing
+ * Accepts telemetry files in multiple formats.
+ * Auth: Supabase session — unauthenticated requests receive 401 with a
+ * redirectTo hint so the client can send the user to /auth?returnTo=/upload.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { createClient } from '@/lib/supabase/server';
 import { DEMO_MODE, DEMO_USER } from '@/lib/demo-mode';
 import { processIngestion } from '@/lib/ingestion/ingestion-processor';
 import { processFromIngestion } from '@/lib/audit-processor';
@@ -17,29 +17,40 @@ export async function POST(request: NextRequest) {
     let currentUser: { id: string; email: string } | null = null;
 
     if (DEMO_MODE) {
-      // Demo mode: use synthetic user, skip DB lookup
       currentUser = { id: DEMO_USER.id, email: DEMO_USER.email };
     } else {
-      const session = await getServerSession(authOptions);
-      if (!session?.user?.email) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const supabase = await createClient();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user?.email) {
+        return NextResponse.json(
+          { error: 'Unauthorized', redirectTo: '/auth?returnTo=/upload' },
+          { status: 401 }
+        );
       }
 
       const { default: getPrismaAuth } = await import('@/lib/db');
       const prismaAuth = await getPrismaAuth();
 
-      const dbUser = await prismaAuth.user.findUnique({
-        where: { email: session.user.email },
+      // Find or create Prisma User record keyed by email (bridge from Supabase auth)
+      const dbUser = await prismaAuth.user.upsert({
+        where: { email: user.email },
+        create: {
+          email: user.email,
+          name:
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email.split('@')[0],
+          role: 'user',
+        },
+        update: {},
+        select: { id: true, email: true },
       });
-
-      if (!dbUser) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
 
       currentUser = { id: dbUser.id, email: dbUser.email };
     }
 
-    const user = currentUser;
+    const authUser = currentUser;
 
     // Get prisma client for subsequent DB operations
     const { default: getPrisma } = await import('@/lib/db');
@@ -72,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Create IngestionJob in DB with status='processing'
     const ingestionJob = await prisma.ingestionJob.create({
       data: {
-        userId: user.id,
+        userId: authUser.id,
         status: 'processing',
         sourceFormat: 'generic', // Will be updated during processing
         rawPath: file.name,
@@ -110,7 +121,7 @@ export async function POST(request: NextRequest) {
           const auditJob = await freshPrisma.auditJob.create({
             data: {
               uploadId: 'ingestion-' + ingestionJob.id,
-              userId: user.id,
+              userId: authUser.id,
               ingestionId: ingestionJob.id,
               status: 'processing',
             },
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
 
           // Process the audit report generation
           try {
-            await processFromIngestion(ingestionJob.id, auditJob.id, user.email, freshPrisma);
+            await processFromIngestion(ingestionJob.id, auditJob.id, authUser.email, freshPrisma);
 
             // Update audit job with completion status
             await freshPrisma.auditJob.update({

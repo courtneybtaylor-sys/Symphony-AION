@@ -1,11 +1,14 @@
 /**
- * NextAuth API Route
- * Phase 4a: Handles /api/auth/* endpoints (signin, signout, session, etc.)
+ * NextAuth route — replaced by Supabase auth.
+ * Redirects legacy /api/auth/* requests to the Supabase auth page.
  */
 
-import NextAuth from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { NextRequest, NextResponse } from 'next/server'
 
-const handler = NextAuth(authOptions);
+export async function GET(request: NextRequest) {
+  return NextResponse.redirect(new URL('/auth', request.url))
+}
 
-export { handler as GET, handler as POST };
+export async function POST(request: NextRequest) {
+  return NextResponse.redirect(new URL('/auth', request.url))
+}
