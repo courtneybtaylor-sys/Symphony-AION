@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUpload } from '@/lib/intake-gate';
-import { requireAuth } from '@/lib/auth/helpers';
+import { optionalAuth } from '@/lib/auth/helpers';
 import { TelemetryUploadSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize, validateTelemetrySize } from '@/lib/payload-limits';
 import crypto from 'crypto';
@@ -24,9 +24,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Phase 4a: Require authentication
-  const auth = await requireAuth();
-  if (auth.error) return auth.error;
+  // Phase 4a: Optional authentication (allow public uploads)
+  const auth = await optionalAuth();
 
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -81,7 +80,7 @@ export async function POST(request: NextRequest) {
       const prisma = await getPrisma();
       await prisma.upload.create({
         data: {
-          userId: auth.user.id,
+          userId: auth?.id || null,
           telemetry: telemetry as any,  // Prisma handles JSONB serialization
           hash: telemetryHash,
           framework: result.summary?.frameworkDetected || null,
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
       const prisma = await getPrisma();
       await prisma.analyticsEvent.create({
         data: {
-          userId: auth.user.id,
+          userId: auth?.id || null,
           eventType: result.qualified ? 'qualified' : 'not_qualified',
           metadata: { telemetryHash } as any,  // Prisma handles JSONB serialization
         },
