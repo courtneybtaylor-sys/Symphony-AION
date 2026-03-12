@@ -46,15 +46,19 @@ export default function AuditUploader() {
       setState({ stage: 'uploading', file });
 
       try {
+        // Validate JSON first
         const text = await file.text();
-        const telemetry = JSON.parse(text);
+        JSON.parse(text);
 
         setState({ stage: 'validating', file });
 
-        const response = await fetch('/api/upload-telemetry', {
+        // Use new ingestion API endpoint with multipart form data
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/ingest/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telemetry }),
+          body: formData,
         });
 
         if (!response.ok) {
@@ -69,17 +73,35 @@ export default function AuditUploader() {
 
         const result = await response.json();
 
-        if (result.qualified) {
+        // New endpoint returns ingestionId instead of qualified status
+        if (result.success && result.data?.ingestionId) {
+          // For now, show a basic qualified state
+          // In production, you might redirect to a status page
           setState({
             stage: 'qualified',
             file,
-            result,
+            result: {
+              qualified: true,
+              summary: {
+                runCount: 0,
+                modelCallCount: 0,
+                totalCostUSD: 0,
+                totalTokens: 0,
+                frameworkDetected: 'generic',
+                modelsDetected: [],
+                estimatedSavingsRangeLow: 0,
+                estimatedSavingsRangeHigh: 0,
+              },
+              projectedROI: 0,
+              telemetryHash: result.data.ingestionId,
+              message: 'Ingestion started. Processing in background...',
+            },
           });
         } else {
           setState({
-            stage: 'not-qualified',
-            file,
-            result,
+            stage: 'error',
+            file: null,
+            error: result.error || 'Upload failed',
           });
         }
       } catch (error) {
