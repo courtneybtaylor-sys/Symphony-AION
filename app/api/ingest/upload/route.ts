@@ -7,29 +7,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/config';
+import { DEMO_MODE, DEMO_USER } from '@/lib/demo-mode';
 import { processIngestion } from '@/lib/ingestion/ingestion-processor';
 import { processFromIngestion } from '@/lib/audit-processor';
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Auth check — supports DEMO_MODE bypass
+    let currentUser: { id: string; email: string } | null = null;
+
+    if (DEMO_MODE) {
+      // Demo mode: use synthetic user, skip DB lookup
+      currentUser = { id: DEMO_USER.id, email: DEMO_USER.email };
+    } else {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const { default: getPrismaAuth } = await import('@/lib/db');
+      const prismaAuth = await getPrismaAuth();
+
+      const dbUser = await prismaAuth.user.findUnique({
+        where: { email: session.user.email },
+      });
+
+      if (!dbUser) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      currentUser = { id: dbUser.id, email: dbUser.email };
     }
 
-    // Get prisma client
+    const user = currentUser;
+
+    // Get prisma client for subsequent DB operations
     const { default: getPrisma } = await import('@/lib/db');
     const prisma = await getPrisma();
-
-    // Get user from DB
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     // Parse form data
     const formData = await request.formData();
