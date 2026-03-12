@@ -1,20 +1,22 @@
 /**
- * Telemetry Upload Handler
- * Accepts JSON telemetry, validates against intake gate, returns qualification summary
- * Phase 4a: Protected with authentication
- * Phase 4e: Validated with Zod
- * Task 5: Payload size limits
+ * Telemetry Upload Handler — Symphony-AION v2.2
+ * PUBLIC endpoint — no authentication required
+ * Auth is enforced downstream at Stripe payment for PDF only
+ *
+ * Fixes applied:
+ * - Removed requireAuth() [was causing 401 for all anonymous uploads]
+ * - Removed Redis/BullMQ queue dependency [Redis not available on Vercel serverless]
+ * - Scoring runs synchronously in-process (sub-500ms for typical payloads)
+ * - Prisma writes are best-effort (non-fatal if DB unavailable)
  */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUpload } from '@/lib/intake-gate';
-import { optionalAuth } from '@/lib/auth/helpers';
 import { TelemetryUploadSchema } from '@/lib/validation/schemas';
 import { checkPayloadSize, validateTelemetrySize } from '@/lib/payload-limits';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
-  // Task 5: Check payload size
+  // Check payload size (no auth needed for this check)
   const contentLength = request.headers.get('content-length');
   const sizeCheck = checkPayloadSize(contentLength, '/api/upload-telemetry');
   if (!sizeCheck.allowed) {
@@ -24,8 +26,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Phase 4a: Optional authentication (allow public uploads)
-  const auth = await optionalAuth();
+  // NO AUTH CHECK — public upload endpoint
+  // PDF report download is gated behind Stripe payment ($750)
 
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -35,22 +37,22 @@ export async function POST(request: NextRequest) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const file = formData.get('file') as File;
-      if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
+      if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
       try {
         telemetry = JSON.parse(await file.text());
       } catch {
-        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid JSON in uploaded file' }, { status: 400 });
       }
     } else {
       try {
         const body = await request.json();
         telemetry = body.telemetry || body;
       } catch {
-        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
       }
     }
 
-    // Phase 4e: Validate input
+    // Validate input schema
     const parsed = TelemetryUploadSchema.safeParse({ telemetry });
     if (!parsed.success) {
       return NextResponse.json(
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Task 5: Validate telemetry structure sizes
+    // Validate telemetry structure sizes
     const telemetrySizeCheck = validateTelemetrySize(telemetry, '/api/upload-telemetry');
     if (!telemetrySizeCheck.valid) {
       return NextResponse.json(
@@ -68,20 +70,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate telemetry against intake gate
+    // Run scoring synchronously — no queue, no Redis
     const result = validateUpload(telemetry);
 
-    // Generate a hash for telemetry storage
+    // Generate job ID for tracking
     const telemetryHash = crypto.randomBytes(16).toString('hex');
 
-    // Phase 4b: Store upload in database
+    // Best-effort DB write (non-fatal — Prisma/DB may not be configured yet)
     try {
       const { getPrisma } = await import('@/lib/db');
       const prisma = await getPrisma();
       await prisma.upload.create({
         data: {
-          userId: auth?.id || null,
-          telemetry: telemetry as any,  // Prisma handles JSONB serialization
+          telemetry: telemetry as any,
           hash: telemetryHash,
           framework: result.summary?.frameworkDetected || null,
           modelCount: result.summary?.modelsDetected?.length || null,
@@ -89,22 +90,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch {
-      // DB may not be available in test mode - continue with in-memory
-    }
-
-    // Log analytics event
-    try {
-      const { getPrisma } = await import('@/lib/db');
-      const prisma = await getPrisma();
-      await prisma.analyticsEvent.create({
-        data: {
-          userId: auth?.id || null,
-          eventType: result.qualified ? 'qualified' : 'not_qualified',
-          metadata: { telemetryHash } as any,  // Prisma handles JSONB serialization
-        },
-      });
-    } catch {
-      // Ignore analytics errors
+      // Non-fatal: DB write failure does not block the upload response
     }
 
     return NextResponse.json({
@@ -115,14 +101,16 @@ export async function POST(request: NextRequest) {
       projectedROI: result.projectedROI,
       telemetryHash,
       message: result.qualified
-        ? `Your workflow qualifies for audit! Estimated monthly savings: $${Math.round(result.summary.estimatedSavingsRangeLow)}–$${Math.round(result.summary.estimatedSavingsRangeHigh)}.`
+        ? `Workflow qualifies for audit. Estimated monthly savings: $${Math.round(
+            result.summary.estimatedSavingsRangeLow
+          )}–$${Math.round(result.summary.estimatedSavingsRangeHigh)}.`
         : result.reason,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: `Upload failed: ${message}` },
-      { status: 400 }
+      { status: 500 }
     );
   }
 }

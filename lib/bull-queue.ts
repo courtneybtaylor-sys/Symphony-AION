@@ -2,10 +2,13 @@
  * Bull Queue Implementation
  * Production-grade async job queue using Bull + Redis
  * Falls back to in-memory queue if Redis unavailable
+ *
+ * IMPORTANT: Redis initialization is now lazy and guarded
+ * If REDIS_URL is not configured, auditQueue remains null
  */
 
 import Queue, { Job } from 'bull';
-import { redis } from '@/lib/redis';
+import { getRedis } from '@/lib/redis';
 import { processAuditJob } from '@/lib/audit-processor';
 
 export interface AuditJobData {
@@ -24,11 +27,19 @@ export function initializeQueues() {
   if (auditQueue) return;
 
   try {
+    // Check if Redis is available first
+    const redis = getRedis();
+    if (!redis) {
+      console.warn('[Queue] Redis not configured — Bull queue unavailable, will use in-memory fallback');
+      auditQueue = null;
+      return;
+    }
+
     // Attempt to create Bull queue with Redis
     const queueName = 'audit-jobs';
-    
+
     // Check if Redis is available (simplified check)
-    const redisUrl = process.env.REDIS_URL || 
+    const redisUrl = process.env.REDIS_URL ||
                      process.env.UPSTASH_REDIS_REST_URL ||
                      'redis://localhost:6379';
 
