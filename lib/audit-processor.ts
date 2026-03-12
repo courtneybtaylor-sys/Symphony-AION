@@ -5,8 +5,12 @@
 
 import { buildRunViewModel } from './telemetry';
 import { calculateAEI } from './aei-score';
+import { calculateGEI } from './gei-score';
+import { calculateSHI } from './shi-score';
 import { generateRecommendations } from './recommendations';
 import { generateAuditReport } from './pdf-report';
+import { generateTestament } from './testament';
+import { anchorTestament } from './orda-client';
 import crypto from 'crypto';
 
 // Vercel Blob is only available on server side
@@ -37,11 +41,18 @@ export interface AuditJob {
   reportFilePath?: string;
   reportBlobUrl?: string;
   aeiScore?: number;
+  geiScore?: number;
+  shiScore?: number;
+  shiStatus?: 'healthy' | 'caution' | 'critical';
   recommendations?: any[];
   totalCostUSD?: number;
   projectedSavingsMonthly?: number;
   runCount?: number;
   frameworkDetected?: string;
+  testament_id?: string;
+  testament_sc_timestamp?: string;
+  maat_all_pass?: boolean;
+  orda_anchor_hash?: string;
 }
 
 /**
@@ -69,6 +80,12 @@ export async function processAuditJob(
     // Step 3: Calculate AEI
     const aeiScore = calculateAEI(runViewModel);
 
+    // Step 3a: Calculate GEI
+    const geiScore = calculateGEI(runViewModel);
+
+    // Step 3b: Calculate SHI
+    const shiScore = calculateSHI(aeiScore, geiScore);
+
     // Step 4: Generate recommendations
     const recommendations = generateRecommendations(runViewModel, aeiScore);
 
@@ -76,6 +93,8 @@ export async function processAuditJob(
     const pdfBlob = await generateAuditReport(runViewModel, aeiScore, recommendations, {
       reportId: job.id,
       customerEmail: job.customerEmail,
+      geiScore,
+      shiScore,
     });
 
     // Step 6: Generate secure token
@@ -97,7 +116,59 @@ export async function processAuditJob(
       console.warn('[Processor] Vercel Blob not configured, PDF will not be persisted');
     }
 
+    // Step 7a: Generate Testament
+    // Testament is generated AFTER PDF so its hash can include the PDF payload
+    let pdfBuffer: Buffer;
+    try {
+      if (Buffer.isBuffer(pdfBlob)) {
+        pdfBuffer = pdfBlob;
+      } else if (typeof pdfBlob === 'string') {
+        pdfBuffer = Buffer.from(pdfBlob);
+      } else if (pdfBlob instanceof Blob && typeof (pdfBlob as any).arrayBuffer === 'function') {
+        pdfBuffer = Buffer.from(await (pdfBlob as any).arrayBuffer());
+      } else {
+        // Last resort: convert to Buffer as-is (handles Uint8Array, etc.)
+        pdfBuffer = Buffer.from(pdfBlob as any);
+      }
+    } catch {
+      // If all else fails, create a minimal buffer with a hash of the object
+      console.warn('[Testament] Could not convert pdfBlob to Buffer, using fallback');
+      pdfBuffer = Buffer.from(JSON.stringify(pdfBlob).substring(0, 1000));
+    }
+
+    const testament = generateTestament({
+      auditId: job.id,
+      aeiScore: aeiScore.overall,
+      geiScore: geiScore.overall,
+      shiScore: shiScore.overall,
+      shiStatus: shiScore.status,
+      pdfBuffer,
+    });
+
+    // Step 7b: Store testament as JSON in Vercel Blob
+    if (put) {
+      try {
+        await put(
+          `testaments/${job.id}.json`,
+          Buffer.from(JSON.stringify(testament, null, 2)),
+          { access: 'public' }
+        );
+        console.log(`[Testament] Generated: ${testament.testament_id}`);
+      } catch (err) {
+        // Testament storage failure is non-blocking
+        console.error('[Testament] Storage failed:', err);
+      }
+    }
+
+    // Step 7c: Anchor testament to ORDA registry (Phase 2 stub)
+    const ordaResult = await anchorTestament(testament);
+    console.log(`[ORDA] Anchor: ${ordaResult.anchor_hash.slice(0, 16)}...`);
+
+    // Update testament with real anchor hash
+    testament.orda_anchor = ordaResult.anchor_hash;
+
     // Step 8: Update job (in production: save to DB)
+    const maat_all_pass = Object.values(testament.maat_result).every(v => v === 'PASS');
     const updatedJob: AuditJob = {
       ...job,
       status: 'complete',
@@ -107,6 +178,13 @@ export async function processAuditJob(
       reportTokenExpiresAt: expiresAt,
       reportBlobUrl,
       aeiScore: aeiScore.overall,
+      geiScore: geiScore.overall,
+      shiScore: shiScore.overall,
+      shiStatus: shiScore.status,
+      testament_id: testament.testament_id,
+      testament_sc_timestamp: testament.sc_timestamp,
+      maat_all_pass,
+      orda_anchor_hash: ordaResult.anchor_hash,
       recommendations,
       totalCostUSD: runViewModel.costs.total,
       frameworkDetected: (telemetryData as any).framework || 'generic',

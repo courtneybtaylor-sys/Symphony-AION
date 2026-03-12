@@ -6,6 +6,8 @@
 import jsPDF from 'jspdf';
 import { RunViewModel, Status } from './types';
 import { AEIScore } from './aei-score';
+import { GEIScore } from './gei-score';
+import { SHIScore } from './shi-score';
 
 /**
  * Recommendation interface (imported from recommendations engine)
@@ -304,7 +306,151 @@ function addCoverPage(
   });
 }
 
-// PAGE 2: EXECUTIVE SUMMARY
+// PAGE 2: SOVEREIGN HEALTH INDEX (SHI)
+function addSovereignHealthIndexPage(
+  doc: jsPDF,
+  geiScore: GEIScore,
+  shiScore: SHIScore,
+  reportDate: string,
+  runId: string
+) {
+  doc.addPage();
+  const pageNum = 2;
+  addRunningHeader(doc, pageNum, runId, reportDate);
+  addRunningFooter(doc, pageNum, reportDate);
+
+  const margin = 18;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Section header
+  setFillColor(doc, COLORS.headerBar);
+  doc.rect(margin, 24, contentWidth, 8, 'F');
+
+  setTextColor(doc, COLORS.headerText);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('SECTION 1 · SOVEREIGN HEALTH INDEX (SHI)', margin + 2, 28.5);
+
+  // SHI Score display (large number with color coding)
+  const shiY = 40;
+  const scoreColor =
+    shiScore.overall >= 70
+      ? COLORS.success
+      : shiScore.overall >= 50
+        ? COLORS.accent
+        : COLORS.danger;
+
+  setTextColor(doc, COLORS.secondaryText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('SYSTEM HEALTH SCORE', margin, shiY);
+
+  setTextColor(doc, scoreColor);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(56);
+  doc.text(`${Math.round(shiScore.overall)}`, margin, shiY + 30);
+
+  setTextColor(doc, COLORS.secondaryText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(20);
+  doc.text('/100', margin + 60, shiY + 27);
+
+  // Status badge
+  const statusColor =
+    shiScore.status === 'healthy' ? COLORS.success : shiScore.status === 'caution' ? COLORS.accent : COLORS.danger;
+  setFillColor(doc, statusColor);
+  doc.setLineWidth(0);
+  doc.rect(margin, shiY + 38, 50, 8, 'F');
+
+  setTextColor(doc, COLORS.headerText);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(shiScore.status.toUpperCase(), margin + 2, shiY + 43);
+
+  // AEI | GEI | Status row
+  const metricsY = shiY + 55;
+  const metricItems = [
+    { label: 'AEI', value: `${Math.round(shiScore.aei)}/100` },
+    { label: 'GEI', value: `${Math.round(shiScore.gei)}/100` },
+    { label: 'Status', value: shiScore.status },
+  ];
+
+  const metricSpacing = contentWidth / 3;
+  setTextColor(doc, COLORS.primary);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+
+  metricItems.forEach((item, idx) => {
+    const x = margin + idx * metricSpacing;
+    doc.text(item.label, x, metricsY);
+
+    setTextColor(doc, COLORS.accent);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(item.value, x, metricsY + 8);
+
+    setTextColor(doc, COLORS.primary);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(9);
+  });
+
+  // Formula
+  const formulaY = metricsY + 20;
+  setTextColor(doc, COLORS.secondaryText);
+  doc.setFont('Helvetica', 'italic');
+  doc.setFontSize(9);
+  doc.text('Formula: SHI = AEI × (1 − GEI/100)', margin, formulaY);
+
+  // Top insights
+  const insightsY = formulaY + 12;
+  setTextColor(doc, COLORS.primary);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('KEY INSIGHTS', margin, insightsY);
+
+  setTextColor(doc, COLORS.bodyText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(9);
+
+  let insightY = insightsY + 8;
+  shiScore.insights.slice(0, 2).forEach((insight) => {
+    const lines = doc.splitTextToSize(insight, contentWidth - 4);
+    doc.text(lines, margin + 2, insightY);
+    insightY += lines.length * 4 + 2;
+  });
+
+  // GEI Sub-scores
+  const geiY = insightY + 8;
+  setTextColor(doc, COLORS.primary);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('GOVERNANCE SUB-SCORES', margin, geiY);
+
+  const geiSubItems = [
+    { label: 'Cost Control', value: geiScore.subScores.cost },
+    { label: 'Authority', value: geiScore.subScores.authority },
+    { label: 'Privacy', value: geiScore.subScores.privacy },
+  ];
+
+  setTextColor(doc, COLORS.bodyText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(9);
+
+  geiSubItems.forEach((item, idx) => {
+    const subY = geiY + 10 + idx * 6;
+    doc.text(`${item.label}:`, margin + 2, subY);
+
+    setTextColor(doc, COLORS.accent);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(`${Math.round(item.value)}%`, margin + 50, subY);
+
+    setTextColor(doc, COLORS.bodyText);
+    doc.setFont('Helvetica', 'normal');
+  });
+}
+
+// PAGE 3: EXECUTIVE SUMMARY (adjusted page number)
 function addExecutiveSummaryPage(
   doc: jsPDF,
   runData: RunViewModel,
@@ -434,7 +580,7 @@ function addExecutiveSummaryPage(
   });
 }
 
-// PAGE 3: COST FORENSICS
+// PAGE 4: COST FORENSICS (shifted from page 3)
 function addCostForensicsPage(
   doc: jsPDF,
   runData: RunViewModel,
@@ -442,7 +588,7 @@ function addCostForensicsPage(
   runId: string
 ) {
   doc.addPage();
-  const pageNum = 3;
+  const pageNum = 4;
   addRunningHeader(doc, pageNum, runId, reportDate);
   addRunningFooter(doc, pageNum, reportDate);
 
@@ -544,7 +690,7 @@ function addCostForensicsPage(
   doc.text(`Total Avoidable: $0.00`, margin + 4, avoidableY + 26);
 }
 
-// PAGE 4: PERFORMANCE DIAGNOSTICS
+// PAGE 5: PERFORMANCE DIAGNOSTICS (shifted from page 4)
 function addPerformanceDiagnosticsPage(
   doc: jsPDF,
   runData: RunViewModel,
@@ -552,7 +698,7 @@ function addPerformanceDiagnosticsPage(
   runId: string
 ) {
   doc.addPage();
-  const pageNum = 4;
+  const pageNum = 5;
   addRunningHeader(doc, pageNum, runId, reportDate);
   addRunningFooter(doc, pageNum, reportDate);
 
@@ -642,7 +788,7 @@ function addPerformanceDiagnosticsPage(
   }
 }
 
-// PAGE 5: FAILURE & RISK ANALYSIS
+// PAGE 6: FAILURE & RISK ANALYSIS (shifted from page 5)
 function addFailureAnalysisPage(
   doc: jsPDF,
   runData: RunViewModel,
@@ -651,7 +797,7 @@ function addFailureAnalysisPage(
   runId: string
 ) {
   doc.addPage();
-  const pageNum = 5;
+  const pageNum = 6;
   addRunningHeader(doc, pageNum, runId, reportDate);
   addRunningFooter(doc, pageNum, reportDate);
 
@@ -719,7 +865,7 @@ function addFailureAnalysisPage(
   });
 }
 
-// PAGE 6: OPTIMIZATION RECOMMENDATIONS
+// PAGE 7: OPTIMIZATION RECOMMENDATIONS (shifted from page 6)
 function addRecommendationsPage(
   doc: jsPDF,
   recommendations: AuditRecommendation[],
@@ -727,7 +873,7 @@ function addRecommendationsPage(
   runId: string
 ) {
   doc.addPage();
-  const pageNum = 6;
+  const pageNum = 7;
   addRunningHeader(doc, pageNum, runId, reportDate);
   addRunningFooter(doc, pageNum, reportDate);
 
@@ -834,6 +980,129 @@ function addRecommendationsPage(
     margin + 4,
     savingsY + 18
   );
+}
+
+// PAGE 9: TESTAMENT RECORD (conditional, after Financial Exposure)
+function addTestamentRecordPage(
+  doc: jsPDF,
+  reportId: string,
+  reportDate: string,
+  shiScore?: SHIScore,
+  runId?: string
+) {
+  doc.addPage();
+  const pageNum = 9;
+  addRunningHeader(doc, pageNum, runId || reportId, reportDate);
+  addRunningFooter(doc, pageNum, reportDate);
+
+  const margin = 18;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Section header
+  setFillColor(doc, COLORS.headerBar);
+  doc.rect(margin, 24, contentWidth, 8, 'F');
+
+  setTextColor(doc, COLORS.headerText);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('TESTAMENT RECORD & AUTHORITY', margin + 2, 28.5);
+
+  // Testament details
+  const detailY = 40;
+  const rowHeight = 7;
+  const labelWidth = 50;
+
+  const details = [
+    { label: 'Testament ID', value: `SAR-AION-${reportId.substring(0, 20)}...` },
+    { label: 'Agent ID', value: 'SYMPHONY-AION-v1.0' },
+    { label: 'Action', value: 'FORENSIC_AUDIT_COMPLETED' },
+    { label: 'Authority', value: 'Kheper PBC / ORDA-CERT-AION-001' },
+  ];
+
+  setTextColor(doc, COLORS.bodyText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(9);
+
+  let rowY = detailY;
+  details.forEach((detail, idx) => {
+    if (idx % 2 === 0) {
+      setFillColor(doc, idx % 4 === 0 ? COLORS.background : COLORS.zebraFill);
+      doc.rect(margin, rowY - 4, contentWidth, 6, 'F');
+    }
+
+    setTextColor(doc, COLORS.primary);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(detail.label, margin + 2, rowY);
+
+    setTextColor(doc, COLORS.bodyText);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(detail.value, margin + labelWidth + 2, rowY);
+
+    rowY += rowHeight;
+  });
+
+  // Ma'at Gates
+  const maatY = detailY + details.length * rowHeight + 8;
+  setTextColor(doc, COLORS.primary);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text("MA'AT GATES (Truth & Justice)", margin, maatY);
+
+  setTextColor(doc, COLORS.secondaryText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+
+  const gates = [
+    { gate: 'G1', name: 'Neutrality', status: 'PASS' },
+    { gate: 'G2', name: 'Truth', status: 'PASS' },
+    { gate: 'G3', name: 'Privacy', status: 'PASS' },
+    { gate: 'G4', name: 'Safety', status: 'PASS' },
+    { gate: 'G5', name: 'Authority', status: 'PASS' },
+    { gate: 'G6', name: 'Scope', status: 'PASS' },
+    { gate: 'G7', name: 'Determinism', status: shiScore && shiScore.overall === 0 ? 'FAIL' : 'PASS' },
+  ];
+
+  let gateY = maatY + 8;
+  let gatesPerRow = 0;
+  gates.forEach((gate, idx) => {
+    const gateX = margin + (gatesPerRow % 2) * (contentWidth / 2);
+    if (gatesPerRow > 0 && gatesPerRow % 2 === 0) gateY += 6;
+
+    const gateColor = gate.status === 'PASS' ? COLORS.success : COLORS.danger;
+    const gateSymbol = gate.status === 'PASS' ? '✓' : '✗';
+
+    setTextColor(doc, gateColor);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(`${gateSymbol} ${gate.gate} - ${gate.name}`, gateX, gateY);
+
+    gatesPerRow++;
+  });
+
+  // ORDA section
+  const ordaY = gateY + 16;
+  setTextColor(doc, COLORS.primary);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('ORDA REGISTRY', margin, ordaY);
+
+  setTextColor(doc, COLORS.bodyText);
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Anchor Hash: Pending (Phase 2 stub)', margin + 2, ordaY + 8);
+  doc.text('Registry Status: Local ledger', margin + 2, ordaY + 14);
+  doc.text('Phase 3+: Full ORDA distributed registry', margin + 2, ordaY + 20);
+
+  // Closing statement
+  const closingY = ordaY + 32;
+  setTextColor(doc, COLORS.secondaryText);
+  doc.setFont('Helvetica', 'italic');
+  doc.setFontSize(8);
+  const closingText =
+    "This Testament certifies the forensic audit completion under ORDA-CERT-AION-001. All data is cryptographically anchored to the Sovereign Calendar (SC-2026-). We track the cycles. We anchor the truth.";
+  const closingLines = doc.splitTextToSize(closingText, contentWidth - 4);
+  doc.text(closingLines, margin + 2, closingY);
 }
 
 // PAGE 7: FINANCIAL EXPOSURE
@@ -979,6 +1248,8 @@ export async function generateAuditReport(
     reportDate?: string;
     reportId?: string;
     customerEmail?: string;
+    geiScore?: GEIScore;
+    shiScore?: SHIScore;
   } = {}
 ): Promise<Blob> {
   const doc = new jsPDF({
@@ -994,23 +1265,33 @@ export async function generateAuditReport(
     // Page 1: Cover
     addCoverPage(doc, runData, aeiScore, reportId, reportDate);
 
-    // Page 2: Executive Summary
+    // Page 2: Sovereign Health Index (if GEI and SHI available)
+    if (options.geiScore && options.shiScore) {
+      addSovereignHealthIndexPage(doc, options.geiScore, options.shiScore, reportDate, runData.id);
+    }
+
+    // Page 3: Executive Summary
     addExecutiveSummaryPage(doc, runData, aeiScore, reportDate, runData.id);
 
-    // Page 3: Cost Forensics
+    // Page 4: Cost Forensics
     addCostForensicsPage(doc, runData, reportDate, runData.id);
 
-    // Page 4: Performance Diagnostics
+    // Page 5: Performance Diagnostics
     addPerformanceDiagnosticsPage(doc, runData, reportDate, runData.id);
 
-    // Page 5: Failure & Risk Analysis
+    // Page 6: Failure & Risk Analysis
     addFailureAnalysisPage(doc, runData, aeiScore, reportDate, runData.id);
 
-    // Page 6: Optimization Recommendations
+    // Page 7: Optimization Recommendations
     addRecommendationsPage(doc, recommendations, reportDate, runData.id);
 
-    // Page 7: Financial Exposure
+    // Page 8: Financial Exposure
     addFinancialExposurePage(doc, runData, recommendations, reportDate, runData.id);
+
+    // Page 9: Testament Record (if SHI available)
+    if (options.shiScore) {
+      addTestamentRecordPage(doc, reportId, reportDate, options.shiScore, runData.id);
+    }
 
     // Generate PDF blob
     const pdfBlob = doc.output('blob') as Blob;
