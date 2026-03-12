@@ -50,7 +50,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-clay bg-nun/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="text-2xl font-bold text-gold">SYMPHONY-AION</div>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
             <a href="#scoring" className="text-ghost hover:text-papyrus text-sm transition">
               Scoring
             </a>
@@ -60,6 +60,12 @@ export default function LandingPage() {
             <a href="#pricing" className="text-ghost hover:text-papyrus text-sm transition">
               Pricing
             </a>
+            <Link
+              href="/login"
+              className="text-ghost hover:text-papyrus text-sm transition"
+            >
+              Sign In
+            </Link>
             <button
               onClick={scrollToUpload}
               className="px-4 py-2 bg-gold hover:bg-gold-bright text-nun rounded-lg font-medium transition text-sm"
