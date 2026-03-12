@@ -57,8 +57,8 @@ export function middleware(request: NextRequest) {
 
   // Rate limiting for API routes
   if (pathname.startsWith('/api/')) {
-    // Skip rate limiting for webhooks (Stripe needs reliable delivery)
-    if (pathname === '/api/webhook') {
+    // Skip rate limiting for webhooks (Stripe needs reliable delivery) and public uploads
+    if (pathname === '/api/webhook' || pathname === '/api/upload-telemetry') {
       const response = NextResponse.next();
       const corsHeaders = getCorsHeaders(origin);
       for (const [key, value] of Object.entries(corsHeaders)) {
